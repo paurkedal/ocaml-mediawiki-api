@@ -1,0 +1,22 @@
+OASISFormat: 0.3
+Name: mediawikiapi
+Version: 0.1
+Synopsis: MediaWiki API
+Authors: Petter A. Urkedal
+License: LGPL-3 with OCaml linking exception
+Plugins: DevFiles (0.3), META (0.3)
+BuildTools: ocamlbuild
+
+Library mwapi
+  Path: src
+  Modules: Mwapi_cookiejar
+  BuildDepends: cohttp, lwt, prime, ssl, xdg-basedir, yojson
+
+Document mwapi
+  Title: MediaWiki API
+  Type: ocamlbuild (0.3)
+  InstallDir: $htmldir/html
+  BuildTools+: ocamldoc
+  XOCamlbuildPath: src
+  XOCamlbuildLibraries: mwapi
+  DataFiles: COPYING ($docdir)
