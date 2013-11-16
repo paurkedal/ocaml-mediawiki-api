@@ -9,8 +9,8 @@ BuildTools: ocamlbuild
 
 Library mwapi
   Path: src
-  Modules: Mwapi_cookiejar
-  BuildDepends: cohttp, lwt, prime, ssl, xdg-basedir, yojson
+  Modules: Mwapi, Mwapi_cookiejar, Mwapi_lwt
+  BuildDepends: cohttp, cohttp.lwt, kojson, lwt, prime, ssl, xdg-basedir, yojson
 
 Document mwapi
   Title: MediaWiki API
