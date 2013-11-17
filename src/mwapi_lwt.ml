@@ -26,7 +26,7 @@ let (>|=) = Lwt.(>|=)
 
 let section = Lwt_log.Section.make "mwapi"
 
-module Cookiejar = Mwapi_cookiejar.Make (Cohttp_lwt_unix_io)
+module Cookiejar_io = Mwapi_cookiejar.Make (Cohttp_lwt_unix_io)
 
 let use_certificate cert key =
   Ssl.init ();
@@ -34,7 +34,7 @@ let use_certificate cert key =
 
 type client = {
   endpoint : Uri.t;
-  cookiejar : Cookiejar.t;
+  cookiejar : Mwapi_cookiejar.t;
   logger : Lwt_log.logger;
 }
 
@@ -50,28 +50,30 @@ let rec mkdir_rec dir =
 
 let open_api ?(logger = !Lwt_log.default) endpoint =
   (match Uri.scheme endpoint with Some "https" -> Ssl.init () | _ -> ());
-  let cookiejar = Cookiejar.create () in
   begin match Uri.host endpoint with
-  | None -> Lwt.return_unit
+  | None -> Lwt.fail (Failure "Missing domain on MWAPI URL.")
   | Some domain ->
-    let fp = Mwapi_cookiejar.xdg_cookie_path ~domain in
+    let cookiejar = Mwapi_cookiejar.create () in
+    let origin = Mwapi_cookiejar.uri_origin endpoint in
+    let fp = Mwapi_cookiejar.persistence_path ~origin () in
     Lwt.catch
       (fun () ->
 	Lwt_io.with_file Lwt_io.input fp
-	  (fun ic -> Cookiejar.read ic cookiejar))
-      (function _ -> Lwt.return_unit)
-  end >>
-  Lwt.return {endpoint; cookiejar; logger}
+	  (fun ic -> Cookiejar_io.read ~origin ic cookiejar))
+      (function _ -> Lwt.return_unit) >>
+    Lwt.return {endpoint; cookiejar; logger}
+  end
 
 let close_api {endpoint; cookiejar} =
   match Uri.host endpoint with
   | None -> Lwt.return_unit
   | Some domain ->
     (* TODO: Expire cookies *)
-    let fp = Mwapi_cookiejar.xdg_cookie_path ~domain in
+    let origin = Mwapi_cookiejar.uri_origin endpoint in
+    let fp = Mwapi_cookiejar.persistence_path ~origin () in
     mkdir_rec (Filename.dirname fp) >>
     Lwt_io.with_file Lwt_io.output fp
-      (fun oc -> Cookiejar.write oc cookiejar)
+      (fun oc -> Cookiejar_io.write ~origin oc cookiejar)
 
 let decode_star =
   K.assoc begin
@@ -130,27 +132,41 @@ let decode_json logger resp body =
 let fail_with_no_response = Lwt.fail
   (Http_error {http_error_code = 0; http_error_info = "No response."})
 
+let log_headers logger headers =
+  Lwt_list.iter_s
+    (fun ln -> Lwt_log.debug_f ~logger ~section "Header: %s" ln)
+    (Cohttp.Header.to_lines headers)
+
 let get_json {endpoint; cookiejar; logger} params =
   let params = ("format", "json") :: params in
   let params = List.map (fun (k, v) -> (k, [v])) params in
   let uri = Uri.with_query endpoint params in
+  let cookies_hdr = Mwapi_cookiejar.header endpoint cookiejar in
+  let headers = Cohttp.Header.of_list [cookies_hdr] in
+  log_headers logger headers >>
   Lwt_log.debug_f ~logger ~section "GETting %s." (Uri.to_string uri) >>
-  match_lwt Client.get uri with
+  match_lwt Client.get ~headers uri with
   | None -> fail_with_no_response
-  | Some (resp, body) -> decode_json logger resp body
+  | Some (resp, body) ->
+    Mwapi_cookiejar.extract endpoint (Cohttp.Response.headers resp) cookiejar;
+    decode_json logger resp body
 
 let post_json {endpoint; cookiejar; logger} params =
   let params = ("format", "json") :: params in
   let params = List.map (fun (k, v) -> (k, [v])) params in
   let postdata = Uri.encoded_of_query params in
   let body = Cohttp_lwt_body.body_of_string postdata in
+  let cookies_hdr = Mwapi_cookiejar.header endpoint cookiejar in
   let headers = Cohttp.Header.of_list
-	["Content-Type", "application/x-www-form-urlencoded"] in
+	["Content-Type", "application/x-www-form-urlencoded"; cookies_hdr] in
+  log_headers logger headers >>
   Lwt_log.debug_f ~logger ~section "POSTing to %s: %s"
 		  (Uri.to_string endpoint) postdata >>
   match_lwt Client.post ~headers ?body endpoint with
   | None -> fail_with_no_response
-  | Some (resp, body) -> decode_json logger resp body
+  | Some (resp, body) ->
+    Mwapi_cookiejar.extract endpoint (Cohttp.Response.headers resp) cookiejar;
+    decode_json logger resp body
 
 let call mw {request_method; request_params; request_decode} =
   begin match request_method with

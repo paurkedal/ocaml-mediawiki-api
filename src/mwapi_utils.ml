@@ -16,6 +16,8 @@
 
 open Printf
 
+module String_map = Prime_map.Make (String)
+
 let failwith_f fmt = ksprintf failwith fmt
 
 type params = (string * string) list
