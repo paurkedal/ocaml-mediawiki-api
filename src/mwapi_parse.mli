@@ -14,13 +14,37 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-module String_map : Prime_map.S with type key = string
+open Mwapi
 
-val failwith_f : ('a, unit, string, 'b) format4 -> 'a
+type 'a prop
 
-type params = (string * string) list
+val (&) : 'a prop -> 'b prop -> ('a * 'b) prop
 
-val pass : ('a -> string) -> string -> 'a -> params -> params
-val pass_opt : ('a -> string) -> string -> 'a option -> params -> params
-val pass_list : ('a -> string) -> string -> 'a list -> params -> params
-val pass_if_true : string -> bool -> params -> params
+val parse_page :
+	?disablepp: bool ->
+	?redirects: bool ->
+	string -> 'a prop -> 'a request
+val parse_pageid :
+	?disablepp: bool ->
+	int -> 'a prop -> 'a request
+val parse_oldid :
+	?disablepp: bool ->
+	int -> 'a prop -> 'a request
+
+val title : string prop
+
+val revid : int prop
+
+type section = {
+  section_toclevel : int;
+  section_level : string; (* [1] *)
+  section_line : string;
+  section_number : string;
+  section_index : string; (* [1] *)
+  section_fromtitle : string;
+  section_byteoffset : int;
+  section_anchor : string;
+}
+val sections : section list prop
+
+(* [1] Should these really be strings, as suggested by the JSON data? *)
