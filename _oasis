@@ -9,7 +9,8 @@ BuildTools: ocamlbuild
 
 Library mwapi
   Path: src
-  Modules: Mwapi, Mwapi_cookiejar, Mwapi_lwt
+  Modules: Mwapi, Mwapi_cookiejar, Mwapi_lwt, Mwapi_utils,
+    Mwapi_login
   BuildDepends: cohttp, cohttp.lwt, kojson, lwt, prime, ssl, xdg-basedir, yojson
 
 Document mwapi
