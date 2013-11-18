@@ -18,6 +18,8 @@ module String_map : Prime_map.S with type key = string
 
 val failwith_f : ('a, unit, string, 'b) format4 -> 'a
 
+val pair : 'a -> 'b -> 'a * 'b
+
 type params = (string * string) list
 
 val pass : ('a -> string) -> string -> 'a -> params -> params

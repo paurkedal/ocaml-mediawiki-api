@@ -32,7 +32,7 @@ type wiki_error = {
 type 'a request = {
   request_method : [`GET | `POST];
   request_params : (string * string) list;
-  request_decode : json -> 'a;
+  request_decode : Kojson.jain -> 'a * Kojson.jain;
 }
 
 exception Http_error of http_error

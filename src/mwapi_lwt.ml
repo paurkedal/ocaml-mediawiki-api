@@ -173,4 +173,4 @@ let call mw {request_method; request_params; request_decode} =
   | `GET -> get_json
   | `POST -> post_json
   end mw request_params >|=
-  request_decode
+  Kojson.jin_of_json *> K.assoc (request_decode *> uncurry Ka.stop)

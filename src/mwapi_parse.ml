@@ -38,10 +38,10 @@ let (&) a b =
 let prim_parse params {prop_names; prop_decode} =
   let request_params = ("action", "parse") :: ("prop", prop_names) :: params in
   let request_decode =
-    K.assoc begin
-      "parse"^: K.assoc (prop_decode *> fun (x, rest) -> Ka.stop x rest) *>
-      Ka.stop
-    end *< Kojson.jin_of_json in
+    "parse"^:
+      K.assoc begin
+	prop_decode *> fun (x, rest) -> Ka.stop x rest
+      end *> pair in
   {request_method = `GET; request_params; request_decode}
 
 let parse_page ?(disablepp = false) ?(redirects = false) page prop =

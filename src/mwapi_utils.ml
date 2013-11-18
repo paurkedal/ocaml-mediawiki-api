@@ -20,6 +20,8 @@ module String_map = Prime_map.Make (String)
 
 let failwith_f fmt = ksprintf failwith fmt
 
+let pair x y = x, y
+
 type params = (string * string) list
 
 let pass conv label x params = (label, conv x) :: params

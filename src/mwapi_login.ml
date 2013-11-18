@@ -71,13 +71,12 @@ let login_status_of_json' ?token = function
   | _ -> failwith "Expecting a string."
 
 let decode_login =
-  K.assoc begin
-    "login"^: K.assoc begin
+  "login"^:
+    K.assoc begin
       "token"^?: Option.map K.string *> fun token ->
       "result"^: K.convert "login_status" (login_status_of_json' ?token) *>
       Ka.stop
-    end *> Ka.stop
-  end
+    end *> pair
 
 let login ~name ~password ?domain ?token () =
   let params = ["action", "login"; "lgname", name; "lgpassword", password]
@@ -85,4 +84,4 @@ let login ~name ~password ?domain ?token () =
     |> pass_opt ident "lgtoken" token in
   { request_method = `POST;
     request_params = params;
-    request_decode = Kojson.jin_of_json *> decode_login; }
+    request_decode = decode_login; }
