@@ -1,4 +1,5 @@
 *.byte
+*.docdir
 *.native
 /Makefile
 /_build
