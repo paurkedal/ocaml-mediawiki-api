@@ -46,18 +46,18 @@ let prim_parse params {prop_names; prop_decode} =
 
 let parse_page ?(disablepp = false) ?(redirects = false) page prop =
   let params = ["page", page]
-    |> pass_if_true "disablepp" disablepp
-    |> pass_if_true "redirects" redirects in
+    |> pass_if "disablepp" disablepp
+    |> pass_if "redirects" redirects in
   prim_parse params prop
 
 let parse_pageid ?(disablepp = false) pageid prop =
   let params = ["pageid", string_of_int pageid]
-    |> pass_if_true "disablepp" disablepp in
+    |> pass_if "disablepp" disablepp in
   prim_parse params prop
 
 let parse_oldid ?(disablepp = false) revid prop =
   let params = ["oldid", string_of_int revid]
-    |> pass_if_true "disablepp" disablepp in
+    |> pass_if "disablepp" disablepp in
   prim_parse params prop
 
 let title =

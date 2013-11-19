@@ -36,5 +36,5 @@ let pass_list conv label xs params =
   | [] -> params
   | _ -> (label, String.concat "|" (List.map conv xs)) :: params
 
-let pass_if_true label cond params =
+let pass_if label cond params =
   if cond then (label, "") :: params else params
