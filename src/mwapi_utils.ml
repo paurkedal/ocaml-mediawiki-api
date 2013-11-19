@@ -38,3 +38,15 @@ let pass_list conv label xs params =
 
 let pass_if label cond params =
   if cond then (label, "") :: params else params
+
+module K_repair = struct
+  open Kojson_pattern
+
+  let int =
+    K.convert "int"
+      begin function
+      | `Int i -> i
+      | `String s -> int_of_string s
+      | _ -> failwith "A string or, preferably, integer expected."
+      end
+end

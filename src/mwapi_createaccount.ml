@@ -32,7 +32,7 @@ let request_decode =
       "token"^: K.string *> fun token ->
       "result"^: K.convert "createaccount_result" decode_result *> fun result ->
       "username"^?: Option.map K.string *> fun username ->
-      "userid"^?: Option.map K.int *> fun userid ->
+      "userid"^?: Option.map K_repair.int *> fun userid ->
       Ka.stop
 	begin match result, username, userid with
 	| (`Success | `Warning), Some username, Some userid ->

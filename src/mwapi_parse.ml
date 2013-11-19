@@ -70,7 +70,7 @@ let revid =
 
 type section = {
   section_toclevel : int;
-  section_level : string;
+  section_level : int;
   section_line : string;
   section_number : string;
   section_index : string;
@@ -84,7 +84,7 @@ let sections =
       K.list (K.assoc
 	begin
 	  "toclevel"^: K.int *> fun section_toclevel ->
-	  "level"^: K.string *> fun section_level ->
+	  "level"^: K_repair.int *> fun section_level ->
 	  "line"^: K.string *> fun section_line ->
 	  "number"^: K.string *> fun section_number ->
 	  "index"^: K.string *> fun section_index ->

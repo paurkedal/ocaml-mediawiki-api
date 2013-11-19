@@ -37,10 +37,10 @@ val revid : int prop
 
 type section = {
   section_toclevel : int;
-  section_level : string; (* [1] *)
+  section_level : int;
   section_line : string;
   section_number : string;
-  section_index : string; (* [1] *)
+  section_index : string; (* Templates have a "T-" prefix. *)
   section_fromtitle : string;
   section_byteoffset : int;
   section_anchor : string;

@@ -26,3 +26,8 @@ val pass : ('a -> string) -> string -> 'a -> params -> params
 val pass_opt : ('a -> string) -> string -> 'a option -> params -> params
 val pass_list : ('a -> string) -> string -> 'a list -> params -> params
 val pass_if : string -> bool -> params -> params
+
+module K_repair : sig
+  open Kojson
+  val int : jin -> int
+end
