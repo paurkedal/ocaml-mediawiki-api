@@ -82,7 +82,7 @@ let decode_star =
   end
 
 let decode_warnings =
-  K.assoc (Ka.map (fun m -> decode_star *> fun msg -> (m, msg)))
+  K.assoc_or_null (Ka.map (fun m -> decode_star *> fun msg -> (m, msg)))
 
 let decode_json logger resp body =
   lwt body_str = Cohttp_lwt_body.string_of_body body in
@@ -100,7 +100,7 @@ let decode_json logger resp body =
   match Response.status resp with
   | `OK ->
     Yojson.Basic.from_string body_str |> Kojson.jin_of_json ~warn |>
-    K.assoc begin
+    K.assoc_or_null begin
       Ka.first [
 	begin
 	  "error"^:
@@ -173,4 +173,4 @@ let call mw {request_method; request_params; request_decode} =
   | `GET -> get_json
   | `POST -> post_json
   end mw request_params >|=
-  Kojson.jin_of_json *> K.assoc (request_decode *> uncurry Ka.stop)
+  Kojson.jin_of_json *> K.assoc_or_null (request_decode *> uncurry Ka.stop)

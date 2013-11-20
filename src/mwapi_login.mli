@@ -32,3 +32,5 @@ val string_of_login_status : login_status -> string
 
 val login : name: string -> password: string -> ?domain: string ->
 	    ?token: string -> unit -> login_status request
+
+val logout : unit request

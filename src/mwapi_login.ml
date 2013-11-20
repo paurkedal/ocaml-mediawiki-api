@@ -85,3 +85,8 @@ let login ~name ~password ?domain ?token () =
   { request_method = `POST;
     request_params = params;
     request_decode = decode_login; }
+
+let logout =
+  { request_method = `POST;
+    request_params = ["action", "logout"];
+    request_decode = fun jain -> ((), jain) }
