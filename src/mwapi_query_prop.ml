@@ -36,6 +36,12 @@ let (&) a b =
     ((x, y), jain) in
   {prop_params; prop_decode}
 
+let possibly_redundant_labels = [
+  (* prop=info is implied by inprop_- and intoken_-queries. *)
+  "touched"; "starttimestamp"; "length"; "lastrevid"; "counter";
+  "redirect"; "new";
+]
+
 let decode_pages decode_prop =
   "pages"^:
     K.assoc (Ka.map begin fun _ ->
@@ -50,7 +56,8 @@ let decode_pages decode_prop =
 	      | None ->
 		"pageid"^: K.int *> fun pageid ->
 		decode_prop *> fun (prop, rest) ->
-		Ka.stop (`Present (title, ns, pageid, prop)) rest
+		Ka.stop (`Present (title, ns, pageid, prop))
+			(Ka.drop possibly_redundant_labels rest)
 	      | Some _ ->
 		Ka.stop (`Missing (title, ns))
 	      end
