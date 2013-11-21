@@ -23,7 +23,7 @@ val pair : 'a -> 'b -> 'a * 'b
 
 type params = (string * string) list
 
-val pass : ('a -> string) -> string -> 'a -> params -> params
+val pass : ('a -> string) -> string -> ?default: 'a -> 'a -> params -> params
 val pass_opt : ('a -> string) -> string -> 'a option -> params -> params
 val pass_list : ('a -> string) -> string -> 'a list -> params -> params
 val pass_if : string -> bool -> params -> params

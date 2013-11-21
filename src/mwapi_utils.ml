@@ -27,7 +27,8 @@ let pair x y = x, y
 
 type params = (string * string) list
 
-let pass conv label x params = (label, conv x) :: params
+let pass conv label ?default x params =
+  if default = Some x then params else (label, conv x) :: params
 
 let pass_opt conv label xo params =
   match xo with

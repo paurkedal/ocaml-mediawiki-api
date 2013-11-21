@@ -11,6 +11,7 @@ Library mwapi
   Path: src
   Modules: Mwapi, Mwapi_cookiejar, Mwapi_lwt, Mwapi_utils,
     Mwapi_createaccount,
+    Mwapi_edit,
     Mwapi_login,
     Mwapi_parse,
     Mwapi_query,
