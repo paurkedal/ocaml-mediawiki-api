@@ -84,18 +84,21 @@ let decode_star =
 let decode_warnings =
   K.assoc_or_null (Ka.map (fun m -> decode_star *> fun msg -> (m, msg)))
 
-let decode_json logger resp body =
-  lwt body_str = Cohttp_lwt_body.string_of_body body in
-
+let make_json_warning_buffer () =
   let json_warnings = Lwt_sequence.create () in
   let warn p msg = ignore (Lwt_sequence.add_r (p, msg) json_warnings) in
-  let rec emit_json_warnings () =
+  let rec emit logger =
     try
       let (p, msg) = Lwt_sequence.take_l json_warnings in
       Lwt_log.warning_f ~logger "In response below %s: %s"
 			(Kojson.string_of_path p) msg >>
-      emit_json_warnings ()
+      emit logger
     with Lwt_sequence.Empty -> Lwt.return_unit in
+  (warn, emit)
+
+let decode_json logger resp body =
+  lwt body_str = Cohttp_lwt_body.string_of_body body in
+  let warn, emit_json_warnings = make_json_warning_buffer () in
 
   match Response.status resp with
   | `OK ->
@@ -110,13 +113,13 @@ let decode_json logger resp body =
 	      "*"^?: Option.map K.string *> fun wiki_error_details ->
 	      Ka.stop {wiki_error_code; wiki_error_info; wiki_error_details}
 	    end *> fun err ->
-	  Ka.stop (emit_json_warnings () >> Lwt.fail (Wiki_error err))
+	  Ka.stop (emit_json_warnings logger >> Lwt.fail (Wiki_error err))
 	end;
 	begin
 	  "warnings"^?: Option.map decode_warnings *> fun wiki_warnings ->
 	  fun rest ->
 	    let result = `Assoc (Ka.any rest) in
-	    emit_json_warnings () >>
+	    emit_json_warnings logger >>
 	    Lwt_list.iter_s
 	      (fun (m, msg) ->
 		Lwt_log.warning_f ~logger "From wiki %s: %s" m msg)
@@ -172,5 +175,8 @@ let call mw {request_method; request_params; request_decode} =
   begin match request_method with
   | `GET -> get_json
   | `POST -> post_json
-  end mw request_params >|=
-  Kojson.jin_of_json *> K.assoc_or_null (request_decode *> uncurry Ka.stop)
+  end mw request_params >>= fun json ->
+  let warn, emit_json_warnings = make_json_warning_buffer () in
+  let result = Kojson.jin_of_json ~warn json
+	    |> K.assoc_or_null (request_decode *> uncurry Ka.stop) in
+  emit_json_warnings mw.logger >> Lwt.return result
