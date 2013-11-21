@@ -20,16 +20,14 @@ type 'a prop
 
 val (&) : 'a prop -> 'b prop -> ('a * 'b) prop
 
-val parse_page :
-	?disablepp: bool ->
-	?redirects: bool ->
-	string -> 'a prop -> 'a request
-val parse_pageid :
-	?disablepp: bool ->
-	int -> 'a prop -> 'a request
-val parse_oldid :
-	?disablepp: bool ->
-	int -> 'a prop -> 'a request
+val parse :
+  ?disablepp: bool ->
+  ?redirects: bool ->
+  ?contentformat: string ->
+  ?contentmodel: string ->
+  page: [< `Title of string | `Id of int | `Rev of int] ->
+  ?section: int ->
+  'a prop -> 'a request
 
 val title : string prop
 

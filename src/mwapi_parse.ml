@@ -44,20 +44,18 @@ let prim_parse params {prop_names; prop_decode} =
       end *> pair in
   {request_method = `GET; request_params; request_decode}
 
-let parse_page ?(disablepp = false) ?(redirects = false) page prop =
-  let params = ["page", page]
+let parse ?(disablepp = false) ?(redirects = false) ?contentformat ?contentmodel
+	  ~page ?section prop =
+  let params = []
     |> pass_if "disablepp" disablepp
-    |> pass_if "redirects" redirects in
-  prim_parse params prop
-
-let parse_pageid ?(disablepp = false) pageid prop =
-  let params = ["pageid", string_of_int pageid]
-    |> pass_if "disablepp" disablepp in
-  prim_parse params prop
-
-let parse_oldid ?(disablepp = false) revid prop =
-  let params = ["oldid", string_of_int revid]
-    |> pass_if "disablepp" disablepp in
+    |> pass_if "redirects" redirects
+    |> pass_opt string_of_int "section" section
+    |> pass_opt ident "contentformat" contentformat
+    |> pass_opt ident "contentmodel" contentmodel
+    |> (match page with
+	| `Title s -> pass ident "page" s
+	| `Id i -> pass string_of_int "pageid" i
+	| `Rev i -> pass string_of_int "oldid" i) in
   prim_parse params prop
 
 let title =
