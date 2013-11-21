@@ -15,6 +15,7 @@
  *)
 
 module String_map : Prime_map.S with type key = string
+module String_set : Set.S with type elt = string
 
 val failwith_f : ('a, unit, string, 'b) format4 -> 'a
 
@@ -26,6 +27,17 @@ val pass : ('a -> string) -> string -> 'a -> params -> params
 val pass_opt : ('a -> string) -> string -> 'a option -> params -> params
 val pass_list : ('a -> string) -> string -> 'a list -> params -> params
 val pass_if : string -> bool -> params -> params
+
+module Qparams : sig
+  type t = String_set.t String_map.t
+
+  val empty : t
+  val singleton : string -> string -> t
+  val add : string -> string -> t -> t
+  val of_list : (string * string) list -> t
+  val to_params : t -> (string * string) list
+  val merge : t -> t -> t
+end
 
 module K_repair : sig
   open Kojson
