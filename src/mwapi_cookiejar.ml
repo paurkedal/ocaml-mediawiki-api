@@ -210,4 +210,4 @@ let persistence_path ?(ext = "cookies") ~origin:(domain, port) () =
     failwith_f "Unsafe character in domain \"%s\"." domain;
   let cache_dir = XDGBaseDir.Cache.user_dir () in
   let fn = sprintf "%s:%d.%s" domain port ext in
-  List.fold_right Filename.concat [cache_dir; "ocaml-mediawikiapi"] fn
+  List.fold_right Filename.concat [cache_dir; "ocaml-mediawiki-api"] fn
