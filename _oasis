@@ -7,6 +7,10 @@ License: LGPL-3 with OCaml linking exception
 Plugins: DevFiles (0.3), META (0.3)
 BuildTools: ocamlbuild
 
+Flag tools
+  Description: Install MediaWiki command-line utilities.
+  Default: true
+
 Library mwapi
   Path: src
   Modules: Mwapi, Mwapi_cookiejar, Mwapi_lwt, Mwapi_utils,
@@ -26,3 +30,9 @@ Document mwapi
   XOCamlbuildPath: src
   XOCamlbuildLibraries: mwapi
   DataFiles: COPYING ($docdir)
+
+Executable "mw-edit"
+  Build$: flag(tools)
+  BuildDepends: mwapi, pcre
+  Path: bin
+  MainIs: mw_edit.ml
