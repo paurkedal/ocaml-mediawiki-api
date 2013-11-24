@@ -70,6 +70,10 @@ let text =
   let prop_decode = "text"^: K.assoc ("*"^: K.string *> Ka.stop) *> pair in
   {prop_names = "text"; prop_decode}
 
+let wikitext =
+  let prop_decode = "wikitext"^: K.assoc ("*"^: K.string *> Ka.stop) *> pair in
+  {prop_names = "wikitext"; prop_decode}
+
 type section = {
   section_toclevel : int;
   section_level : int;
