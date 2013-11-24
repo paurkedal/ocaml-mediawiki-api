@@ -66,6 +66,10 @@ let revid =
   let prop_decode = "revid"^: K.int *> fun revid rest -> (revid, rest) in
   {prop_names = "revid"; prop_decode}
 
+let text =
+  let prop_decode = "text"^: K.assoc ("*"^: K.string *> Ka.stop) *> pair in
+  {prop_names = "text"; prop_decode}
+
 type section = {
   section_toclevel : int;
   section_level : int;

@@ -33,6 +33,8 @@ val title : string prop
 
 val revid : int prop
 
+val text : string prop
+
 type section = {
   section_toclevel : int;
   section_level : int;
