@@ -23,6 +23,6 @@ val use_certificate : string -> string -> unit
 val open_api : ?logger: Lwt_log.logger -> Uri.t -> client Lwt.t
 val close_api : client -> unit Lwt.t
 
-val get_json : client -> (string * string) list -> json Lwt.t
-val post_json : client -> (string * string) list -> json Lwt.t
-val call : client -> 'a request -> 'a Lwt.t
+val get_json : (string * string) list -> client -> json Lwt.t
+val post_json : (string * string) list -> client -> json Lwt.t
+val call : 'a request -> client -> 'a Lwt.t

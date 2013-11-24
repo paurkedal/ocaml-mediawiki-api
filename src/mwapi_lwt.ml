@@ -140,7 +140,7 @@ let log_headers logger headers =
     (fun ln -> Lwt_log.debug_f ~logger ~section "Header: %s" ln)
     (Cohttp.Header.to_lines headers)
 
-let get_json {endpoint; cookiejar; logger} params =
+let get_json params {endpoint; cookiejar; logger} =
   let params = ("format", "json") :: params in
   let params = List.map (fun (k, v) -> (k, [v])) params in
   let uri = Uri.with_query endpoint params in
@@ -154,7 +154,7 @@ let get_json {endpoint; cookiejar; logger} params =
     Mwapi_cookiejar.extract endpoint (Cohttp.Response.headers resp) cookiejar;
     decode_json logger resp body
 
-let post_json {endpoint; cookiejar; logger} params =
+let post_json params {endpoint; cookiejar; logger} =
   let params = ("format", "json") :: params in
   let params = List.map (fun (k, v) -> (k, [v])) params in
   let postdata = Uri.encoded_of_query params in
@@ -171,11 +171,11 @@ let post_json {endpoint; cookiejar; logger} params =
     Mwapi_cookiejar.extract endpoint (Cohttp.Response.headers resp) cookiejar;
     decode_json logger resp body
 
-let call mw {request_method; request_params; request_decode} =
+let call {request_method; request_params; request_decode} mw =
   begin match request_method with
   | `GET -> get_json
   | `POST -> post_json
-  end mw request_params >>= fun json ->
+  end request_params mw >>= fun json ->
   let warn, emit_json_warnings = make_json_warning_buffer () in
   let result = Kojson.jin_of_json ~warn json
 	    |> K.assoc_or_null (request_decode *> uncurry Ka.stop) in
