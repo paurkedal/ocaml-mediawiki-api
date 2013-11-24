@@ -67,15 +67,21 @@ let decode_pages decode_prop =
     end) *> pair
 
 let for_titles titles prop =
-  let pq_params = List.fold (Qparams.add "titles") titles prop.prop_params in
+  let pq_params =
+    Qparams.add "titles" (String.concat "|" titles) prop.prop_params in
   {pq_params; pq_decode = decode_pages prop.prop_decode}
 
 let for_pageids pageids prop =
   let pq_params =
-    List.fold (Qparams.add "pageids") (List.map string_of_int pageids)
-	      prop.prop_params in
+    Qparams.add "pageids" (String.concat "|" (List.map string_of_int pageids))
+		prop.prop_params in
   {pq_params; pq_decode = decode_pages prop.prop_decode}
 
+let for_revids revids prop =
+  let pq_params =
+    Qparams.add "revids" (String.concat "|" (List.map string_of_int revids))
+		prop.prop_params in
+  {pq_params; pq_decode = decode_pages prop.prop_decode}
 
 (* prop=info *)
 

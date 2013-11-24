@@ -32,8 +32,8 @@ val (&) : ('a, 'ak) prop -> ('b, 'bk) prop -> ('a * 'b) nprop
 
 val for_titles : string list -> ('a, 'k) prop -> ('a, 'k) page_query
 val for_pageids : int list -> ('a, 'k) prop -> ('a, 'k) page_query
-(*
 val for_revids : int list -> ('a, 'k) prop -> ('a, 'k) page_query
+(*
 val for_list : ('b, [< `G]) list_query -> ('a, 'k) prop ->
 	       ('a, [`N]) page_query
 val for_prop : ('b, [< `G]) page_query -> ('a, 'k) prop ->
