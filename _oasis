@@ -11,7 +11,7 @@ Flag tools
   Description: Install MediaWiki command-line utilities.
   Default: true
 
-Library mwapi
+Library "mediawiki-api"
   Path: src
   Modules: Mwapi, Mwapi_cookiejar, Mwapi_lwt, Mwapi_utils,
     Mwapi_createaccount,
@@ -22,7 +22,7 @@ Library mwapi
     Mwapi_query_prop
   BuildDepends: cohttp, cohttp.lwt, kojson, lwt, prime, ssl, xdg-basedir, yojson
 
-Document mwapi
+Document "mediawiki-api"
   Title: MediaWiki API
   Type: ocamlbuild (0.3)
   InstallDir: $htmldir/html
