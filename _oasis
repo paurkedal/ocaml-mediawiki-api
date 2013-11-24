@@ -28,11 +28,11 @@ Document "mediawiki-api"
   InstallDir: $htmldir/html
   BuildTools+: ocamldoc
   XOCamlbuildPath: src
-  XOCamlbuildLibraries: mwapi
+  XOCamlbuildLibraries: mediawiki-api
   DataFiles: COPYING ($docdir)
 
 Executable "mw-edit"
   Build$: flag(tools)
-  BuildDepends: mwapi, pcre
+  BuildDepends: mediawiki-api, pcre
   Path: bin
   MainIs: mw_edit.ml
