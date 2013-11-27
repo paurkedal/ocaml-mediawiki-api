@@ -36,3 +36,4 @@ Executable "mw-edit"
   BuildDepends: mediawiki-api, pcre
   Path: bin
   MainIs: mw_edit.ml
+  CompiledObject: best
