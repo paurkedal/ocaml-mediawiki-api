@@ -1,6 +1,6 @@
 OASISFormat: 0.3
 Name: mediawiki-api
-Version: 0.1
+Version: 0.2
 Synopsis: MediaWiki API
 Authors: Petter A. Urkedal
 License: LGPL-3 with OCaml linking exception
