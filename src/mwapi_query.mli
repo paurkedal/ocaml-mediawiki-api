@@ -27,30 +27,32 @@ type ('a, 'k) list_query = {
   lq_decode : Kojson.jain -> 'a * Kojson.jain;
 }
 
-type 'p page =
-  [ `Present of string * int * int * 'p	(* title, ns, pageid, prop *)
-  | `Missing of string * int		(* title, ns *)
+type ('a, 'am) page =
+  [ `Present of string * int * int * 'a	(* title, ns, pageid, prop *)
+  | `Missing of string * int * 'am	(* title, ns, prop *)
   | `Invalid of string ]		(* title *)
 
-type ('a, 'k) page_query = {
+type ('a, 'am, 'k) page_query = {
   pq_params : Qparams.t;
-  pq_decode : Kojson.jain -> 'a page list * Kojson.jain;
+  pq_decode : Kojson.jain -> ('a, 'am) page list * Kojson.jain;
 }
 
-type ('m, 'l, 'p) query = {
+type ('m, 'l, 'a, 'am) query = {
   query_meta : 'm;
   query_list : 'l;
-  query_pages : 'p page list;
+  query_pages : ('a, 'am) page list;
   query_continue : (string * string) list;
 }
 
 val no_meta : unit meta_query
 val no_list : (unit, [`N]) list_query
-val no_pages : (unit, [`N]) page_query
+val no_pages : (unit, unit, [`N]) page_query
 
-val combine : 'm meta_query -> ('l, 'lk) list_query -> ('p, 'pk) page_query ->
-	      ('m, 'l, 'p) query request
+val combine : 'm meta_query ->
+	      ('l, 'lk) list_query ->
+	      ('a, 'am, 'ak) page_query -> ('m, 'l, 'a, 'am) query request
 
-val only_meta : 'm meta_query -> ('m, unit, unit) query request
-val only_list : ('l, 'lk) list_query -> (unit, 'l, unit) query request
-val only_pages : ('p, 'pk) page_query -> (unit, unit, 'p) query request
+val only_meta : 'm meta_query -> ('m, unit, unit, unit) query request
+val only_list : ('l, 'lk) list_query -> (unit, 'l, unit, unit) query request
+val only_pages : ('a, 'am, 'ak) page_query ->
+		 (unit, unit, 'a, 'am) query request

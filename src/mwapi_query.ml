@@ -31,20 +31,20 @@ type ('l, 'k) list_query = {
   lq_decode : Kojson.jain -> 'l * Kojson.jain;
 }
 
-type 'p page =
-  [ `Present of string * int * int * 'p
-  | `Missing of string * int
+type ('a, 'am) page =
+  [ `Present of string * int * int * 'a
+  | `Missing of string * int * 'am
   | `Invalid of string ]
 
-type ('p, 'k) page_query = {
+type ('a, 'am, 'k) page_query = {
   pq_params : Qparams.t;
-  pq_decode : Kojson.jain -> 'p page list * Kojson.jain;
+  pq_decode : Kojson.jain -> ('a, 'am) page list * Kojson.jain;
 }
 
-type ('m, 'l, 'p) query = {
+type ('m, 'l, 'a, 'am) query = {
   query_meta : 'm;
   query_list : 'l;
-  query_pages : 'p page list;
+  query_pages : ('a, 'am) page list;
   query_continue : (string * string) list;
 }
 

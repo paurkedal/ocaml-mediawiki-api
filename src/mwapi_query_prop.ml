@@ -21,12 +21,13 @@ open Unprime
 open Unprime_list
 open Unprime_option
 
-type ('a, 'k) prop = {
+type ('a, 'am, 'k) prop = {
   prop_params : Qparams.t;
   prop_decode : Kojson.jain -> 'a * Kojson.jain;
+  prop_decode_missing : Kojson.jain -> 'am * Kojson.jain;
 }
-type 'a nprop = ('a, [`N]) prop
-type 'a gprop = ('a, [`G]) prop
+type ('a, 'am) nprop = ('a, 'am, [`N]) prop
+type ('a, 'am) gprop = ('a, 'am, [`G]) prop
 
 let (&) a b =
   let prop_params = Qparams.merge a.prop_params b.prop_params in
@@ -34,7 +35,11 @@ let (&) a b =
     let x, jain = a.prop_decode jain in
     let y, jain = b.prop_decode jain in
     ((x, y), jain) in
-  {prop_params; prop_decode}
+  let prop_decode_missing jain =
+    let x, jain = a.prop_decode_missing jain in
+    let y, jain = b.prop_decode_missing jain in
+    ((x, y), jain) in
+  {prop_params; prop_decode; prop_decode_missing}
 
 let possibly_redundant_labels = [
   (* prop=info is implied by inprop_- and intoken_-queries. *)
@@ -42,7 +47,7 @@ let possibly_redundant_labels = [
   "redirect"; "new";
 ]
 
-let decode_pages decode_prop =
+let decode_pages decode_prop decode_missing_prop =
   "pages"^:
     K.assoc (Ka.map begin fun _ ->
       K.assoc begin
@@ -59,7 +64,9 @@ let decode_pages decode_prop =
 		Ka.stop (`Present (title, ns, pageid, prop))
 			(Ka.drop possibly_redundant_labels rest)
 	      | Some _ ->
-		Ka.stop (`Missing (title, ns))
+		decode_missing_prop *> fun (prop, rest) ->
+		Ka.stop (`Missing (title, ns, prop))
+			(Ka.drop possibly_redundant_labels rest)
 	      end
 	  | Some _ -> Ka.stop (`Invalid title)
 	  end
@@ -69,19 +76,22 @@ let decode_pages decode_prop =
 let for_titles titles prop =
   let pq_params =
     Qparams.add "titles" (String.concat "|" titles) prop.prop_params in
-  {pq_params; pq_decode = decode_pages prop.prop_decode}
+  let pq_decode = decode_pages prop.prop_decode prop.prop_decode_missing in
+  {pq_params; pq_decode}
 
 let for_pageids pageids prop =
   let pq_params =
     Qparams.add "pageids" (String.concat "|" (List.map string_of_int pageids))
 		prop.prop_params in
-  {pq_params; pq_decode = decode_pages prop.prop_decode}
+  let pq_decode = decode_pages prop.prop_decode prop.prop_decode_missing in
+  {pq_params; pq_decode}
 
 let for_revids revids prop =
   let pq_params =
     Qparams.add "revids" (String.concat "|" (List.map string_of_int revids))
 		prop.prop_params in
-  {pq_params; pq_decode = decode_pages prop.prop_decode}
+  let pq_decode = decode_pages prop.prop_decode prop.prop_decode_missing in
+  {pq_params; pq_decode}
 
 (* prop=info *)
 
@@ -105,11 +115,14 @@ let info =
     let in_new = in_new <> None in
     pair {in_touched; in_lastrevid; in_counter; in_length;
 	  in_redirect; in_new} in
-  {prop_params = Qparams.singleton "prop" "info"; prop_decode}
+  { prop_params = Qparams.singleton "prop" "info";
+    prop_decode;
+    prop_decode_missing = pair () }
 
 let make_inprop inprop decode = {
   prop_params = Qparams.of_list ["prop", "info"; "inprop", inprop];
   prop_decode = inprop^: decode *> pair;
+  prop_decode_missing = pair ();
 }
 
 type protection = {
@@ -138,13 +151,20 @@ let inprop_url =
     "fullurl"^: K.string *> fun fullurl ->
     "editurl"^: K.string *> fun editurl ->
     pair {fullurl; editurl} in
-  {prop_params = Qparams.of_list ["prop", "info"; "inprop", "url"]; prop_decode}
+  { prop_params = Qparams.of_list ["prop", "info"; "inprop", "url"];
+    prop_decode; prop_decode_missing = pair () }
 
-let make_intoken which = {
-  prop_params = Qparams.of_list ["prop", "info"; "intoken", which];
-  prop_decode = (which ^ "token")^: K.string *> pair;
-}
-let intoken_edit = make_intoken "edit"
+let make_intoken ?(on_missing = false) which =
+  let prop_params = Qparams.of_list ["prop", "info"; "intoken", which] in
+  let prop_decode = (which ^ "token")^: K.string *> pair in
+  {prop_params; prop_decode; prop_decode_missing = pair ()}
+
+let make_intoken_missing ?(on_missing = false) which =
+  let prop_params = Qparams.of_list ["prop", "info"; "intoken", which] in
+  let prop_decode = (which ^ "token")^: K.string *> pair in
+  {prop_params; prop_decode; prop_decode_missing = prop_decode}
+
+let intoken_edit = make_intoken_missing "edit"
 let intoken_delete = make_intoken "delete"
 let intoken_protect = make_intoken "protect"
 let intoken_move = make_intoken "move"

@@ -32,10 +32,8 @@ let get_edit_token ~page mw =
   let req = Mwapi_query.only_pages (for_pages Mwapi_query_prop.intoken_edit) in
   lwt res = Mwapi_lwt.call req mw in
   match res.Mwapi_query.query_pages with
-  | [`Present (_, _, _, token)] ->
+  | [`Present (_, _, _, token)] | [`Missing (_, _, token)] ->
     Lwt.return token
-  | [`Missing (title, _)] ->
-    fail_f "Requested edit-token for missing page \"%s\"." title
   | [`Invalid title] ->
     fail_f "Unexpected invalid-response to edit-token request for \"%s\"." title
   | rs ->

@@ -17,27 +17,29 @@
 open Mwapi_query
 open Mwapi_utils
 
-type ('a, 'k) prop = {
+type ('a, 'am, 'k) prop = {
   prop_params : Qparams.t;
   prop_decode : Kojson.jain -> 'a * Kojson.jain;
+  prop_decode_missing : Kojson.jain -> 'am * Kojson.jain;
 }
 
-type 'a gprop = ('a, [`G]) prop
+type ('a, 'am) gprop = ('a, 'am, [`G]) prop
 (** A property which can be used as a generator. *)
 
-type 'a nprop = ('a, [`N]) prop
+type ('a, 'am) nprop = ('a, 'am, [`N]) prop
 (** A property which cannot be used as a generator. *)
 
-val (&) : ('a, 'ak) prop -> ('b, 'bk) prop -> ('a * 'b) nprop
+val (&) : ('a, 'am, 'ak) prop ->
+	  ('b, 'bm, 'bk) prop -> ('a * 'b, 'am * 'bm) nprop
 
-val for_titles : string list -> ('a, 'k) prop -> ('a, 'k) page_query
-val for_pageids : int list -> ('a, 'k) prop -> ('a, 'k) page_query
-val for_revids : int list -> ('a, 'k) prop -> ('a, 'k) page_query
+val for_titles : string list -> ('a, 'am, 'k) prop -> ('a, 'am, 'k) page_query
+val for_pageids : int list -> ('a, 'am, 'k) prop -> ('a, 'am, 'k) page_query
+val for_revids : int list -> ('a, 'am, 'k) prop -> ('a, 'am, 'k) page_query
 (*
-val for_list : ('b, [< `G]) list_query -> ('a, 'k) prop ->
-	       ('a, [`N]) page_query
-val for_prop : ('b, [< `G]) page_query -> ('a, 'k) prop ->
-	       ('a, [`N]) page_query
+val for_list : ('b, 'bm, [< `G]) list_query -> ('a, 'am, 'k) prop ->
+	       ('a, 'am, [`N]) page_query
+val for_prop : ('b, 'bm, [< `G]) page_query -> ('a, 'am, 'k) prop ->
+	       ('a, 'am, [`N]) page_query
 *)
 
 
@@ -51,7 +53,7 @@ type info = {
   in_redirect : bool;
   in_new : bool;
 }
-val info : info nprop
+val info : (info, unit) nprop
 
 (** {3 inprop} *)
 
@@ -60,22 +62,22 @@ type protection = {
   protection_level : [`Autoconfirmed | `Sysop];
   protection_expiry : string;
 }
-val inprop_protection : protection nprop
-val inprop_talkid : int nprop
+val inprop_protection : (protection, unit) nprop
+val inprop_talkid : (int, unit) nprop
 type urls = {
   fullurl : string;
   editurl : string;
 }
-val inprop_url : urls nprop
+val inprop_url : (urls, unit) nprop
 
 (** {3 intoken} *)
 
-val intoken_edit : string nprop
-val intoken_delete : string nprop
-val intoken_protect : string nprop
-val intoken_move : string nprop
-val intoken_block : string nprop
-val intoken_unblock : string nprop
-val intoken_email : string nprop
-val intoken_import : string nprop
-val intoken_watch : string nprop
+val intoken_edit : (string, string) nprop
+val intoken_delete : (string, unit) nprop
+val intoken_protect : (string, unit) nprop
+val intoken_move : (string, unit) nprop
+val intoken_block : (string, unit) nprop
+val intoken_unblock : (string, unit) nprop
+val intoken_email : (string, unit) nprop
+val intoken_import : (string, unit) nprop
+val intoken_watch : (string, unit) nprop
