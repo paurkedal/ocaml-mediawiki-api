@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Mwapi
 open Mwapi_utils
 open Printf
 open Unprime
@@ -21,6 +22,15 @@ open Unprime_list
 open Unprime_option
 open Unprime_string
 open Utils
+
+type insertion_point =
+  | Before_section of string
+  | After_section of string
+  | Bottom_of_section of string
+
+type edit_target =
+  | Edit_page
+  | Edit_section of int * string * insertion_point list
 
 let find_section level tt =
   let open Mwapi_parse in
@@ -30,44 +40,60 @@ let find_section level tt =
       else Some (int_of_string section_index)
     end
 
+let new_page = [Template.Stencil ("init", None)]
 let new_section level title =
   let markup = String.make level '=' in
-  [Template.Text (sprintf "\n\n%s %s %s\n\n" markup title markup);
+  [Template.Text (sprintf "%s %s %s\n\n" markup title markup);
    Template.Stencil ("init", None)]
 
-let find_insertion_point level title ipt sections_result =
-  match ipt with
-  | `Before tt ->
-    Option.map
-      (fun i -> i, new_section level title, (fun s -> `Prepend s))
-      (find_section level tt sections_result)
-  | `After tt ->
-    Option.map
-      (fun i -> i, new_section level title, (fun s -> `Append s))
-      (find_section level tt sections_result)
+let break_after s =
+  if String.length s = 0 || String.has_suffix "\n\n" s then s else
+  if String.has_suffix "\n" s then s ^ "\n" else s ^ "\n\n"
 
-let edit ~page ~level ~section ?(insertion_points = []) subst mw =
-  lwt r = Mwapi_lwt.call Mwapi_parse.(parse ~page sections) mw in
-  lwt i, tmpl, make_op =
-    match find_section level section r with
-    | Some i ->
-      Mwapi_lwt.call Mwapi_parse.(parse ~page ~section:i wikitext) mw
-	>|= fun s ->
-      (i, Template.of_string s, (fun s -> `Replace s))
-    | None ->
-      begin match
-	List.search (fun ipt -> find_insertion_point level section ipt r)
-		    insertion_points
-      with
-      | Some iop -> Lwt.return iop
+let find_insertion_point level ipt sections_result =
+  match ipt with
+  | Before_section tt ->
+    Option.map (fun i -> i, (fun s -> `Prepend (break_after s)))
+	       (find_section level tt sections_result)
+  | After_section tt ->
+    Option.map (fun i -> i, (fun s -> `Append ("\n\n" ^ s)))
+	       (find_section level tt sections_result)
+  | Bottom_of_section tt ->
+    Option.map (fun i -> i, (fun s -> `Append ("\n\n" ^ s)))
+	       (find_section (level - 1) tt sections_result)
+
+let edit ~page ~target subst mw =
+  lwt create, section, tmpl, make_op =
+    match target with
+    | Edit_section (secn_level, secn_title, ipts) ->
+      lwt r = Mwapi_lwt.call Mwapi_parse.(parse ~page sections) mw in
+      begin match find_section secn_level secn_title r with
+      | Some i ->
+	Mwapi_lwt.call Mwapi_parse.(parse ~page ~section:i wikitext) mw
+	  >|= fun s ->
+	(`May_not, Some (`No i), Template.of_string s, (fun s -> `Replace s))
       | None ->
-	Lwt.fail (Failure "Could not locate section to edit or place to \
-			   insert it.")
-      end in
+	begin match
+	  List.search (fun ipt -> find_insertion_point secn_level ipt r) ipts
+	with
+	| Some (i, op) ->
+	  Lwt.return (`May_not, Some (`No i),
+		      new_section secn_level secn_title, op)
+	| None ->
+	  Lwt.fail (Failure "Could not locate section to edit or place to \
+			     insert it.")
+	end
+      end
+    | Edit_page ->
+      try_lwt
+	Mwapi_lwt.call Mwapi_parse.(parse ~page wikitext) mw >|= fun s ->
+	(`May_not, None, Template.of_string s, (fun s -> `Replace s))
+      with Wiki_error {wiki_error_code = "missingtitle"} ->
+	Lwt.return (`Must, None, new_page, (fun s -> `Replace s)) in
   let tmpl = Template.subst_map subst tmpl in
   lwt token = Utils.get_edit_token ~page mw in
   let op = make_op (Template.to_string tmpl) in
-  Utils.call_edit Mwapi_edit.(edit ~token ~page ~section:(`No i) ~op ()) mw
+  Utils.call_edit Mwapi_edit.(edit ~token ~page ~create ?section ~op ()) mw
 
 let subst_of_arg s =
   match String.cut_affix "=" s with
@@ -106,7 +132,7 @@ let () =
   let opt_cert = ref None in
   let opt_certkey = ref None in
   let opt_page = ref None in
-  let opt_level = ref 2 in
+  let opt_level = ref None in
   let opt_section = ref None in
   let opt_ipts = ref [] in
   let opt_subst = ref [] in
@@ -119,17 +145,23 @@ let () =
     "-certkey", Arg.String (set_option opt_certkey), "<file> Private key.";
     "-page", Arg.String (set_option opt_page),
       "<title> The title of the page to edit.";
-    "-level", Arg.Set_int opt_level,
+    "-level", Arg.Int (set_option opt_level),
       "<level> The level of the target section specified as the number of \
 	       equality signs in the corresponding MediaWiki delimiters. \
 	       The default level is 2, e.g. the normal section top-level. \
 	       This applies to -section, -add-after, and -add-before.";
     "-section", Arg.String (set_option opt_section),
       "<title> The title of the target section.";
-    "-add-after", Arg.String (fun tt -> opt_ipts := `After tt :: !opt_ipts),
+    "-add-after",
+      Arg.String (fun tt -> opt_ipts := After_section tt :: !opt_ipts),
       "<title> If the target section is not found, add it after <title>.";
-    "-add-before", Arg.String (fun tt -> opt_ipts := `Before tt :: !opt_ipts),
+    "-add-before",
+      Arg.String (fun tt -> opt_ipts := Before_section tt :: !opt_ipts),
       "<title> If the target section is not found, add it before <title>.";
+    "-add-bottom",
+      Arg.String (fun tt -> opt_ipts := Bottom_of_section tt :: !opt_ipts),
+      "<title> If the target section is not found, add it at the bottom of \
+       <title>, which is one level above the target section.";
     "-s", Arg.String (fun s -> opt_subst := `Set(subst_of_arg s) :: !opt_subst),
       "<x>=<tmpl> Substitute <tmpl> for <x>.";
     "-l", Arg.String (fun s -> opt_subst := `Load s :: !opt_subst),
@@ -141,12 +173,21 @@ let () =
   let mandatory name opt =
     match !opt with
     | None -> misuse (sprintf "The %s option is mandatory." name)
-    | Some section -> section in
+    | Some arg -> arg in
   Arg.parse arg_specs
 	    (fun _ -> misuse "Not expecting positional arguments.") arg_usage;
   let api = mandatory "-api" opt_api in
   let page = mandatory "-page" opt_page in
-  let section = mandatory "-section" opt_section in
+  let target =
+    match !opt_level, !opt_section, !opt_ipts with
+    | Some level, Some title, ipts -> Edit_section (level, title, List.rev ipts)
+    | None, None, [] -> Edit_page
+    | None, None, _ ->
+      misuse "-add-* options are only relevant when targeting a section"
+    | None, Some _, _ ->
+      misuse "The -level option is required when targeting a section."
+    | Some _, None, _ ->
+      misuse "The -section option is required when targeting a section." in
 
   Option.iter (uncurry Mwapi_lwt.use_certificate)
     begin match !opt_cert, !opt_certkey with
@@ -168,8 +209,12 @@ let () =
 	  | `Set (x, tmpl) ->
 	    Lwt.return (String_map.add x (Template.subst_map subst tmpl) subst))
 	String_map.empty !opt_subst in
-    edit ~page:(`Title page)
-	 ~level:!opt_level ~section ~insertion_points:(List.rev !opt_ipts)
-	 subst mw >>
-    Mwapi_lwt.close_api mw
+    try_lwt
+      edit ~page:(`Title page) ~target subst mw >>
+      Mwapi_lwt.close_api mw
+    with
+    | Wiki_error {wiki_error_code; wiki_error_info} ->
+      Lwt_log.error_f "%s - %s" wiki_error_code wiki_error_info
+    | Http_error {http_error_code; http_error_info} ->
+      Lwt_log.error_f "HTTP %d - %s" http_error_code http_error_info
   end
