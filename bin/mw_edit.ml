@@ -112,6 +112,14 @@ let template_of_string s =
 
 let load_template_stdin () = Lwt_io.read Lwt_io.stdin >|= template_of_string
 
+let load_template_from fp =
+  lwt st = Lwt_unix.stat fp in
+  Lwt_io.with_file Lwt_io.input fp
+    (fun ic ->
+      let s = String.create st.Unix.st_size in
+      Lwt_io.read_into_exactly ic s 0 st.Unix.st_size >>
+      Lwt.return (template_of_string s))
+
 let load_template dirs x =
   let fn = x ^ ".tmpl" in
   let rec loop = function
@@ -119,16 +127,15 @@ let load_template dirs x =
     | dir :: dirs ->
       let fp = Filename.concat dir fn in
       begin
-	try_lwt
-	  lwt st = Lwt_unix.stat fp in
-	  Lwt_io.with_file Lwt_io.input fp
-	    (fun ic ->
-	      let s = String.create st.Unix.st_size in
-	      Lwt_io.read_into_exactly ic s 0 st.Unix.st_size >>
-	      Lwt.return (template_of_string s))
+	try_lwt load_template_from fp
 	with Unix.Unix_error (Unix.ENOENT, _, _) -> loop dirs
       end in
   loop dirs
+
+let loadspec_of_arg arg =
+  match String.cut_affix "=" arg with
+  | None -> `Load arg
+  | Some (x, fp) -> `Load_from (x, fp)
 
 let () =
   let opt_api = ref None in
@@ -169,8 +176,10 @@ let () =
       "<x>=<tmpl> Substitute <tmpl> for <x>.";
     "-i", Arg.String (fun s -> opt_subst := `Load_stdin s :: !opt_subst),
       "<x> Load <x> from the standard input.";
-    "-l", Arg.String (fun s -> opt_subst := `Load s :: !opt_subst),
-      "<x> Load <x>.tmpl from the include path and substitute it for <x>.";
+    "-l", Arg.String (fun s -> opt_subst := loadspec_of_arg s :: !opt_subst),
+      "<x>(=<file>)? Load a template from <file> if specified, otherwise from \
+		     the first match of <x>.tmpl under the include path, and \
+		     substitute it for <x>.";
     "-I", Arg.String (fun s -> opt_includes := s :: !opt_includes),
       "<dir> Add <dir> to the include path.";
   ] in
@@ -213,6 +222,9 @@ let () =
 	  function
 	  | `Load x ->
 	    load_template !opt_includes x >|= fun tmpl ->
+	    String_map.add x (Template.subst_map subst tmpl) subst
+	  | `Load_from (x, fp) ->
+	    load_template_from fp >|= fun tmpl ->
 	    String_map.add x (Template.subst_map subst tmpl) subst
 	  | `Load_stdin x ->
 	    load_template_stdin () >|= fun tmpl ->
