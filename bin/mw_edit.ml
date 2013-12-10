@@ -107,6 +107,10 @@ let uri_of_arg s =
 let set_option opt arg = opt := Some arg
 
 let bsnl_rex = Pcre.regexp "\\\\\n"
+let template_of_string s =
+  Template.of_string (Pcre.replace ~rex:bsnl_rex ~templ:"" s)
+
+let load_template_stdin () = Lwt_io.read Lwt_io.stdin >|= template_of_string
 
 let load_template dirs x =
   let fn = x ^ ".tmpl" in
@@ -121,8 +125,7 @@ let load_template dirs x =
 	    (fun ic ->
 	      let s = String.create st.Unix.st_size in
 	      Lwt_io.read_into_exactly ic s 0 st.Unix.st_size >>
-	      Lwt.return
-		(Template.of_string (Pcre.replace ~rex:bsnl_rex ~templ:"" s)))
+	      Lwt.return (template_of_string s))
 	with Unix.Unix_error (Unix.ENOENT, _, _) -> loop dirs
       end in
   loop dirs
@@ -164,6 +167,8 @@ let () =
        <title>, which is one level above the target section.";
     "-s", Arg.String (fun s -> opt_subst := `Set(subst_of_arg s) :: !opt_subst),
       "<x>=<tmpl> Substitute <tmpl> for <x>.";
+    "-i", Arg.String (fun s -> opt_subst := `Load_stdin s :: !opt_subst),
+      "<x> Load <x> from the standard input.";
     "-l", Arg.String (fun s -> opt_subst := `Load s :: !opt_subst),
       "<x> Load <x>.tmpl from the include path and substitute it for <x>.";
     "-I", Arg.String (fun s -> opt_includes := s :: !opt_includes),
@@ -188,6 +193,9 @@ let () =
       misuse "The -level option is required when targeting a section."
     | Some _, None, _ ->
       misuse "The -section option is required when targeting a section." in
+  if List.count (function `Load_stdin _ -> true | _ -> false)
+		!opt_subst > 1 then
+    misuse "Only one mapping can be loaded from standard input.";
 
   Option.iter (uncurry Mwapi_lwt.use_certificate)
     begin match !opt_cert, !opt_certkey with
@@ -205,6 +213,9 @@ let () =
 	  function
 	  | `Load x ->
 	    load_template !opt_includes x >|= fun tmpl ->
+	    String_map.add x (Template.subst_map subst tmpl) subst
+	  | `Load_stdin x ->
+	    load_template_stdin () >|= fun tmpl ->
 	    String_map.add x (Template.subst_map subst tmpl) subst
 	  | `Set (x, tmpl) ->
 	    Lwt.return (String_map.add x (Template.subst_map subst tmpl) subst))
