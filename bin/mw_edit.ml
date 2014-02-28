@@ -1,4 +1,4 @@
-(* Copyright (C) 2013  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2014  Petter Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -62,7 +62,7 @@ let find_insertion_point level ipt sections_result =
     Option.map (fun i -> i, (fun s -> `Append ("\n\n" ^ s)))
 	       (find_section (level - 1) tt sections_result)
 
-let edit ~page ~target subst mw =
+let edit ?(do_replace = false) ~page ~target subst mw =
   lwt create, section, tmpl, make_op =
     match target with
     | Edit_section (secn_level, secn_title, ipts) ->
@@ -71,14 +71,16 @@ let edit ~page ~target subst mw =
       | Some i ->
 	Mwapi_lwt.call Mwapi_parse.(parse ~page ~section:i wikitext) mw
 	  >|= fun s ->
-	(`May_not, Some (`No i), Template.of_string s, (fun s -> `Replace s))
+	let tmpl = if do_replace then new_section secn_level secn_title
+				 else Template.of_string s in
+	(`May_not, Some (`No i), tmpl, (fun s -> `Replace s))
       | None ->
 	begin match
 	  List.search (fun ipt -> find_insertion_point secn_level ipt r) ipts
 	with
 	| Some (i, op) ->
-	  Lwt.return (`May_not, Some (`No i),
-		      new_section secn_level secn_title, op)
+	  let tmpl = new_section secn_level secn_title in
+	  Lwt.return (`May_not, Some (`No i), tmpl, op)
 	| None ->
 	  Lwt.fail (Failure "Could not locate section to edit or place to \
 			     insert it.")
@@ -86,8 +88,11 @@ let edit ~page ~target subst mw =
       end
     | Edit_page ->
       try_lwt
-	Mwapi_lwt.call Mwapi_parse.(parse ~page wikitext) mw >|= fun s ->
-	(`May_not, None, Template.of_string s, (fun s -> `Replace s))
+	if do_replace then
+	  Lwt.return (`May, None, new_page, (fun s -> `Replace s))
+	else
+	  Mwapi_lwt.call Mwapi_parse.(parse ~page wikitext) mw >|= fun s ->
+	  (`May_not, None, Template.of_string s, (fun s -> `Replace s))
       with Wiki_error {wiki_error_code = "missingtitle"} ->
 	Lwt.return (`Must, None, new_page, (fun s -> `Replace s)) in
   let tmpl = Template.subst_map subst tmpl in
@@ -144,6 +149,7 @@ let () =
   let opt_page = ref None in
   let opt_level = ref None in
   let opt_section = ref None in
+  let opt_replace = ref false in
   let opt_ipts = ref [] in
   let opt_subst = ref [] in
   let opt_includes = ref [] in
@@ -172,6 +178,8 @@ let () =
       Arg.String (fun tt -> opt_ipts := Bottom_of_section tt :: !opt_ipts),
       "<title> If the target section is not found, add it at the bottom of \
        <title>, which is one level above the target section.";
+    "-replace", Arg.Unit (fun () -> opt_replace := true),
+      " Replace the given section or page if it exists. Be careful!";
     "-s", Arg.String (fun s -> opt_subst := `Set(subst_of_arg s) :: !opt_subst),
       "<x>=<tmpl> Substitute <tmpl> for <x>.";
     "-i", Arg.String (fun s -> opt_subst := `Load_stdin s :: !opt_subst),
@@ -233,7 +241,7 @@ let () =
 	    Lwt.return (String_map.add x (Template.subst_map subst tmpl) subst))
 	String_map.empty !opt_subst in
     try_lwt
-      edit ~page:(`Title page) ~target subst mw >>
+      edit ~do_replace:!opt_replace ~page:(`Title page) ~target subst mw >>
       Mwapi_lwt.close_api mw
     with
     | Wiki_error {wiki_error_code; wiki_error_info} ->
