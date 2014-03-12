@@ -1,4 +1,4 @@
-(* Copyright (C) 2013  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2014  Petter Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -86,7 +86,7 @@ let rec get' ~is_http ~is_secure path by_path acc =
     if is_http && is_secure then cookies else
     String_map.filter
       (* TODO: Add is_http check when Set_cookie_hdr supports it. *)
-      (fun _ cookie -> is_secure || not (Set_cookie_hdr.is_secure cookie))
+      (fun _ cookie -> is_secure || not (Set_cookie_hdr.secure cookie))
       cookies in
   let acc' = String_map.left_union acc cookies in
   if path = "/" then acc' else
@@ -125,7 +125,7 @@ let add uri cookie by_origin =
 	&& is_subpath cookie_path (Uri.path uri) then begin
     let by_path = tread_origin origin by_origin in
     let scope = tread_path cookie_path by_path in
-    let name, _ = Set_cookie_hdr.binding cookie in
+    let name, _ = Set_cookie_hdr.cookie cookie in
     scope.is_modified <- true;
     scope.cookies <- String_map.add name cookie scope.cookies
   end
@@ -139,7 +139,7 @@ let header uri by_origin =
   let comps =
     List.fold
       (fun cookie acc ->
-	let k, v = Set_cookie_hdr.binding cookie in
+	let k, v = Set_cookie_hdr.cookie cookie in
 	(k ^ "=" ^ v) :: acc)
       cookies [] in
   ("Cookie", String.concat "; " comps)

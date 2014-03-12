@@ -1,4 +1,4 @@
-(* Copyright (C) 2013  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2014  Petter Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -97,7 +97,7 @@ let make_json_warning_buffer () =
   (warn, emit)
 
 let decode_json logger resp body =
-  lwt body_str = Cohttp_lwt_body.string_of_body body in
+  lwt body_str = Cohttp_lwt_body.to_string body in
   let warn, emit_json_warnings = make_json_warning_buffer () in
 
   match Response.status resp with
@@ -132,9 +132,6 @@ let decode_json logger resp body =
     Lwt.fail (Http_error {http_error_code = Cohttp.Code.code_of_status st;
 			  http_error_info = body_str})
 
-let fail_with_no_response = Lwt.fail
-  (Http_error {http_error_code = 0; http_error_info = "No response."})
-
 let log_headers logger headers =
   Lwt_list.iter_s
     (fun ln -> Lwt_log.debug_f ~logger ~section "Header: %s" ln)
@@ -148,28 +145,24 @@ let get_json params {endpoint; cookiejar; logger} =
   let headers = Cohttp.Header.of_list [cookies_hdr] in
   log_headers logger headers >>
   Lwt_log.debug_f ~logger ~section "GETting %s." (Uri.to_string uri) >>
-  match_lwt Client.get ~headers uri with
-  | None -> fail_with_no_response
-  | Some (resp, body) ->
-    Mwapi_cookiejar.extract endpoint (Cohttp.Response.headers resp) cookiejar;
-    decode_json logger resp body
+  lwt resp, body = Client.get ~headers uri in
+  Mwapi_cookiejar.extract endpoint (Cohttp.Response.headers resp) cookiejar;
+  decode_json logger resp body
 
 let post_json params {endpoint; cookiejar; logger} =
   let params = ("format", "json") :: params in
   let params = List.map (fun (k, v) -> (k, [v])) params in
   let postdata = Uri.encoded_of_query params in
-  let body = Cohttp_lwt_body.body_of_string postdata in
+  let body = Cohttp_lwt_body.of_string postdata in
   let cookies_hdr = Mwapi_cookiejar.header endpoint cookiejar in
   let headers = Cohttp.Header.of_list
 	["Content-Type", "application/x-www-form-urlencoded"; cookies_hdr] in
   log_headers logger headers >>
   Lwt_log.debug_f ~logger ~section "POSTing to %s: %s"
 		  (Uri.to_string endpoint) postdata >>
-  match_lwt Client.post ~headers ?body endpoint with
-  | None -> fail_with_no_response
-  | Some (resp, body) ->
-    Mwapi_cookiejar.extract endpoint (Cohttp.Response.headers resp) cookiejar;
-    decode_json logger resp body
+  lwt resp, body = Client.post ~headers ~body endpoint in
+  Mwapi_cookiejar.extract endpoint (Cohttp.Response.headers resp) cookiejar;
+  decode_json logger resp body
 
 let call {request_method; request_params; request_decode} mw =
   begin match request_method with
