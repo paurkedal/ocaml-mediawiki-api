@@ -29,7 +29,7 @@ Document "mediawiki-api"
   BuildTools+: ocamldoc
   XOCamlbuildPath: src
   XOCamlbuildLibraries: mediawiki-api
-  DataFiles: COPYING ($docdir)
+  DataFiles: COPYING ($docdir), COPYING.LESSER ($docdir)
 
 Executable "mw-edit"
   Build$: flag(tools)
