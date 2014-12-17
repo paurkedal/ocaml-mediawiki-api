@@ -167,13 +167,13 @@ let iter ?origin f by_origin =
     with Not_found -> ()
 
 module type S = sig
-  module IO : Cohttp.IO.S
+  module IO : Cohttp.S.IO
 
   val write : origin: origin -> IO.oc -> t -> unit IO.t
   val read : origin: origin -> IO.ic -> t -> unit IO.t
 end
 
-module Make (IO : Cohttp.IO.S) = struct
+module Make (IO : Cohttp.S.IO) = struct
 
   module IO = IO
 

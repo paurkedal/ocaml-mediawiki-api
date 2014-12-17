@@ -214,16 +214,8 @@ let () =
 		!opt_subst > 1 then
     misuse "Only one mapping can be loaded from standard input.";
 
-  Option.iter (uncurry Mwapi_lwt.use_certificate)
-    begin match !opt_cert, !opt_certkey with
-    | None, None -> None
-    | Some cert, Some certkey -> Some (cert, certkey)
-    | Some certkey, None -> Some (certkey, certkey)
-    | None, Some _ -> misuse "-certkey is required when using -cert"
-    end;
-
   Lwt_main.run begin
-    lwt mw = Mwapi_lwt.open_api api in
+    lwt mw = Mwapi_lwt.open_api ?cert:!opt_cert ?certkey:!opt_certkey api in
     lwt subst =
       Lwt_list.fold_left_s
 	(fun subst ->

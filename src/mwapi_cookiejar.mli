@@ -1,4 +1,4 @@
-(* Copyright (C) 2013  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2014  Petter Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -48,12 +48,12 @@ val fold : ?origin: origin -> (cookie -> 'a -> 'a) -> t -> 'a -> 'a
 val iter : ?origin: origin -> (cookie -> unit) -> t -> unit
 
 module type S = sig
-  module IO : Cohttp.IO.S
+  module IO : Cohttp.S.IO
 
   val write : origin: origin -> IO.oc -> t -> unit IO.t
   val read : origin: origin -> IO.ic -> t -> unit IO.t
 end
 
-module Make (IO : Cohttp.IO.S) : S with module IO = IO
+module Make (IO : Cohttp.S.IO) : S with module IO = IO
 
 val persistence_path : ?ext: string -> origin: origin -> unit -> string

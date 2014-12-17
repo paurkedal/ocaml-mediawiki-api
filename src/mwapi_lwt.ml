@@ -28,11 +28,8 @@ let section = Lwt_log.Section.make "mwapi"
 
 module Cookiejar_io = Mwapi_cookiejar.Make (Cohttp_lwt_unix_io)
 
-let use_certificate cert key =
-  Ssl.init ();
-  Ssl.use_certificate Cohttp_lwt_unix_net.Ssl_client.sslctx cert key
-
 type client = {
+  ctx : Cohttp_lwt_unix.Client.ctx option;
   endpoint : Uri.t;
   cookiejar : Mwapi_cookiejar.t;
   logger : Lwt_log.logger;
@@ -48,8 +45,17 @@ let rec mkdir_rec dir =
 	Lwt_unix.mkdir dir 0o755
       | xc -> Lwt.fail xc)
 
-let open_api ?(logger = !Lwt_log.default) endpoint =
+let open_api ?cert ?certkey ?(logger = !Lwt_log.default) endpoint =
   (match Uri.scheme endpoint with Some "https" -> Ssl.init () | _ -> ());
+  let make_context cert certkey =
+    (* FIXME: Cohttp no longer supports the context from the ssl library,
+     * waiting for client cert auth support in conduit. *)
+    failwith "X509 authentication is unsupported in this version." in
+  let ctx =
+    match cert, certkey with
+    | None, None -> None
+    | None, Some cert | Some cert, None -> Some (make_context cert cert)
+    | Some cert, Some certkey -> Some (make_context cert certkey) in
   begin match Uri.host endpoint with
   | None -> Lwt.fail (Failure "Missing domain on MWAPI URL.")
   | Some domain ->
@@ -61,7 +67,7 @@ let open_api ?(logger = !Lwt_log.default) endpoint =
 	Lwt_io.with_file Lwt_io.input fp
 	  (fun ic -> Cookiejar_io.read ~origin ic cookiejar))
       (function _ -> Lwt.return_unit) >>
-    Lwt.return {endpoint; cookiejar; logger}
+    Lwt.return {ctx; endpoint; cookiejar; logger}
   end
 
 let close_api {endpoint; cookiejar} =
@@ -137,7 +143,7 @@ let log_headers logger headers =
     (fun ln -> Lwt_log.debug_f ~logger ~section "Header: %s" ln)
     (Cohttp.Header.to_lines headers)
 
-let get_json params {endpoint; cookiejar; logger} =
+let get_json params {ctx; endpoint; cookiejar; logger} =
   let params = ("format", "json") :: params in
   let params = List.map (fun (k, v) -> (k, [v])) params in
   let uri = Uri.with_query endpoint params in
@@ -145,11 +151,11 @@ let get_json params {endpoint; cookiejar; logger} =
   let headers = Cohttp.Header.of_list [cookies_hdr] in
   log_headers logger headers >>
   Lwt_log.debug_f ~logger ~section "GETting %s." (Uri.to_string uri) >>
-  lwt resp, body = Client.get ~headers uri in
+  lwt resp, body = Client.get ?ctx ~headers uri in
   Mwapi_cookiejar.extract endpoint (Cohttp.Response.headers resp) cookiejar;
   decode_json logger resp body
 
-let post_json params {endpoint; cookiejar; logger} =
+let post_json params {ctx; endpoint; cookiejar; logger} =
   let params = ("format", "json") :: params in
   let params = List.map (fun (k, v) -> (k, [v])) params in
   let postdata = Uri.encoded_of_query params in
@@ -160,7 +166,7 @@ let post_json params {endpoint; cookiejar; logger} =
   log_headers logger headers >>
   Lwt_log.debug_f ~logger ~section "POSTing to %s: %s"
 		  (Uri.to_string endpoint) postdata >>
-  lwt resp, body = Client.post ~headers ~body endpoint in
+  lwt resp, body = Client.post ?ctx ~headers ~body endpoint in
   Mwapi_cookiejar.extract endpoint (Cohttp.Response.headers resp) cookiejar;
   decode_json logger resp body
 
