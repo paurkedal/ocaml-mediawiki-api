@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2015  Petter Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -111,6 +111,11 @@ let uri_of_arg s =
 
 let set_option opt arg = opt := Some arg
 
+let set_login opt arg =
+  match String.cut_affix ":" arg with
+  | Some p -> opt := Some p
+  | _ -> raise (Arg.Bad "Expecting <username>:<password>.")
+
 let bsnl_rex = Pcre.regexp "\\\\\n"
 let template_of_string s =
   Template.of_string (Pcre.replace ~rex:bsnl_rex ~templ:"" s)
@@ -142,10 +147,22 @@ let loadspec_of_arg arg =
   | None -> `Load arg
   | Some (x, fp) -> `Load_from (x, fp)
 
+let login ~name ~password mw =
+  match_lwt
+    match_lwt Mwapi_lwt.call (Mwapi_login.login ~name ~password ()) mw with
+    | `Need_token token ->
+      Mwapi_lwt.call (Mwapi_login.login ~name ~password ~token ()) mw
+    | status -> Lwt.return status
+  with
+  | `Success -> Lwt.return_unit
+  | status ->
+    fail_f "Login failed: %s" (Mwapi_login.string_of_login_status status)
+
 let () =
   let opt_api = ref None in
   let opt_cert = ref None in
   let opt_certkey = ref None in
+  let opt_login = ref None in
   let opt_page = ref None in
   let opt_level = ref None in
   let opt_section = ref None in
@@ -159,6 +176,8 @@ let () =
       "<url> URL of the MediaWiki API.";
     "-cert", Arg.String (set_option opt_cert), "<file> Client certificate.";
     "-certkey", Arg.String (set_option opt_certkey), "<file> Private key.";
+    "-login", Arg.String (set_login opt_login),
+      "<user>:<pass> Login first of all.";
     "-page", Arg.String (set_option opt_page),
       "<title> The title of the page to edit.";
     "-level", Arg.Int (set_option opt_level),
@@ -233,6 +252,10 @@ let () =
 	    Lwt.return (String_map.add x (Template.subst_map subst tmpl) subst))
 	String_map.empty !opt_subst in
     try_lwt
+      begin match !opt_login with
+      | None -> Lwt.return_unit
+      | Some (_ as name, password) -> login ~name ~password mw
+      end >>
       edit ~do_replace:!opt_replace ~page:(`Title page) ~target subst mw >>
       Mwapi_lwt.close_api mw
     with
