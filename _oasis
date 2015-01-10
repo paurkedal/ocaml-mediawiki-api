@@ -21,7 +21,9 @@ Library "mediawiki-api"
     Mwapi_query,
     Mwapi_query_list,
     Mwapi_query_prop
-  BuildDepends: cohttp, cohttp.lwt, kojson, lwt, prime, ssl, xdg-basedir, yojson
+  BuildDepends:
+    calendar, cohttp, cohttp.lwt,
+    kojson, lwt, prime, ssl, xdg-basedir, yojson
 
 Document "mediawiki-api"
   Title: MediaWiki API

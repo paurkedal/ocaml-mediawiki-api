@@ -52,6 +52,56 @@ val allcategories :
   ?limit: int ->
   'a Acprop.t -> ('a allcategory list, [`N]) list_query
 
+(** {2 list=allimages} *)
+
+type aisize = {aisize_size : int; aisize_width : int; aisize_height : int}
+type aiurl = {aiurl_url : string; aiurl_descriptionurl : string}
+
+module Aiprop : sig
+  type 'a t
+
+  val (&) : 'a t -> 'b t -> ('a * 'b) t
+
+  val timestamp : CalendarLib.Calendar.t t
+  val user : string t
+  val userid : int t
+  val comment : string t
+  val parsedcomment : string t
+  val canonicaltitle : string t
+  val url : aiurl t
+  val size : aisize t
+  val sha1 : string t
+  val mime : string t
+  val mediatype : string t
+  (* TODO: metadata, commonmetadata, extmetadata *)
+  val bitdepth : int t
+end
+
+type 'a allimage = {
+  ai_name : string;
+  ai_title : string;
+  ai_ns : int;
+  ai_prop : 'a;
+}
+
+val allimages :
+	?sort: [`Name | `Timestamp] ->
+	?dir: [`Ascending | `Descending | `Newer | `Older] ->
+	?start: string ->
+	?continue: string ->
+	?stop: string ->
+	?tstart: CalendarLib.Calendar.t ->
+	?tstop: CalendarLib.Calendar.t ->
+	?prefix: string ->
+	?minsize: int ->
+	?maxsize: int ->
+	?sha1: [`Hex of string | `Base36 of string] ->
+	?user: string ->
+	?filterbots: [`All | `Bots | `Nobots] ->
+	?mime: string ->
+	?limit: int ->
+	'a Aiprop.t -> ('a allimage list, [`G]) list_query
+
 (** {2 list=allpages} *)
 
 type allpage = {

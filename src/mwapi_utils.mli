@@ -1,4 +1,4 @@
-(* Copyright (C) 2013  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2015  Petter Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -27,6 +27,9 @@ val pass : ('a -> string) -> string -> ?default: 'a -> 'a -> params -> params
 val pass_opt : ('a -> string) -> string -> 'a option -> params -> params
 val pass_list : ('a -> string) -> string -> 'a list -> params -> params
 val pass_if : string -> bool -> params -> params
+
+val caltime_of_string : string -> CalendarLib.Calendar.t
+val string_of_caltime : CalendarLib.Calendar.t -> string
 
 module Qparams : sig
   type t = String_set.t String_map.t

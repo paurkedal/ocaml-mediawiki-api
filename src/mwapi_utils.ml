@@ -1,4 +1,4 @@
-(* Copyright (C) 2013  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2015  Petter Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -42,6 +42,10 @@ let pass_list conv label xs params =
 
 let pass_if label cond params =
   if cond then (label, "") :: params else params
+
+let mw_time_format = "%Y-%m-%dT%H:%M:%SZ"
+let caltime_of_string = CalendarLib.Printer.Calendar.from_fstring mw_time_format
+let string_of_caltime = CalendarLib.Printer.Calendar.sprint mw_time_format
 
 module Qparams = struct
   type t = String_set.t String_map.t

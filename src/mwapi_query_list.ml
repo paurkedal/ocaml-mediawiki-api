@@ -106,6 +106,118 @@ let allcategories
       end *> pair in
   {lq_params; lq_decode}
 
+(* list=allimages *)
+
+type aisize = {aisize_size : int; aisize_width : int; aisize_height : int}
+type aiurl = {aiurl_url : string; aiurl_descriptionurl : string}
+
+module Aiprop = struct
+  type 'a t = {
+    keys : string;
+    decode : Kojson.jain -> 'a * Kojson.jain;
+  }
+
+  let (&) a b =
+    let decode jain =
+      let x, jain = a.decode jain in
+      let y, jain = b.decode jain in
+      ((x, y), jain) in
+    {keys = a.keys ^ "|" ^ b.keys; decode}
+
+  open Kojson_pattern
+
+  let timestamp =
+    { keys = "timestamp";
+      decode = "timestamp"^: K.convert_string "time" caltime_of_string *> pair }
+  let user = {keys = "user"; decode = "user"^: K.string *> pair}
+  let userid = {keys = "userid"; decode = "userid"^: K_repair.int *> pair}
+  let comment = {keys = "comment"; decode = "comment"^: K.string *> pair}
+  let parsedcomment =
+    {keys = "parsedcomment"; decode = "parsedcomment"^: K.string *> pair}
+  let canonicaltitle =
+    {keys = "canonicaltitle"; decode = "canonicaltitle"^: K.string *> pair}
+  let url =
+    let decode =
+      "url"^: K.string *> fun aiurl_url ->
+      "descriptionurl"^: K.string *> fun aiurl_descriptionurl ->
+      pair {aiurl_url; aiurl_descriptionurl} in
+    {keys = "url"; decode}
+  let size =
+    let decode =
+      "size"^: K.int *> fun aisize_size ->
+      "width"^: K.int *> fun aisize_width ->
+      "height"^: K.int *> fun aisize_height ->
+      pair {aisize_size; aisize_width; aisize_height} in
+    {keys = "size"; decode}
+  let sha1 = {keys = "sha1"; decode = "sha1"^: K.string *> pair}
+  let mime = {keys = "mime"; decode = "mime"^: K.string *> pair}
+  let mediatype = {keys = "mediatype"; decode = "mediatype"^: K.string *> pair}
+  let bitdepth = {keys = "bitdepth"; decode = "bitdepth"^: K_repair.int *> pair}
+end
+
+type 'a allimage = {
+  ai_name : string;
+  ai_title : string;
+  ai_ns : int;
+  ai_prop : 'a;
+}
+
+let allimages
+	?(sort = `Name)
+	?(dir = `Ascending)
+	?start ?continue ?stop
+	?tstart ?tstop
+	?prefix
+	?minsize ?maxsize
+	?sha1
+	?user
+	?(filterbots = `All)
+	?mime
+	?limit
+	prop =
+  let lq_params = Qparams.singleton "list" "allimages"
+    |> (if prop.Aiprop.keys = ""
+	then ident
+	else Qparams.add "aiprop" prop.Aiprop.keys)
+    |> (match sort with
+	| `Name -> ident
+	| `Timestamp -> Qparams.add "aisort" "timestamp")
+    |> (match dir with
+	| `Ascending -> ident
+	| `Descending -> Qparams.add "aidir" "descending"
+	| `Newer -> Qparams.add "aidir" "newer"
+	| `Older -> Qparams.add "aidir" "older")
+    |> Option.fold (Qparams.add "aifrom") start
+    |> Option.fold (Qparams.add "aistop") stop
+    |> Option.fold (Qparams.add "aicontinue") continue
+    |> Option.fold (Qparams.add "aistart" *< string_of_caltime) tstart
+    |> Option.fold (Qparams.add "aiend" *< string_of_caltime) tstop
+    |> Option.fold (Qparams.add "aiprefix") prefix
+    |> Option.fold (Qparams.add "aiminsize" *< string_of_int) minsize
+    |> Option.fold (Qparams.add "aimaxsize" *< string_of_int) maxsize
+    |> Option.fold (function `Hex s -> Qparams.add "aisha1" s
+			   | `Base36 s -> Qparams.add "aisha1base36" s) sha1
+    |> Option.fold (Qparams.add "aiuser") user
+    |> (match filterbots with
+	| `All -> ident
+	| `Bots -> Qparams.add "aifilterbots" "bots"
+	| `Nobots -> Qparams.add "aifilterbots" "nobots")
+    |> Option.fold (Qparams.add "aimime") mime
+    |> Option.fold (Qparams.add "ailimit" *< string_of_int) limit in
+  let lq_decode =
+    let open Kojson_pattern in
+    "allimages"^:
+      K.list begin
+	K.assoc begin
+	  "name"^: K.string *> fun ai_name ->
+	  "ns"^: K.int *> fun ai_ns ->
+	  "title"^: K.string *> fun ai_title ->
+	  prop.Aiprop.decode *> fun (ai_prop, jain) ->
+	  Ka.stop {ai_name; ai_ns; ai_title; ai_prop} jain
+	end
+      end *> pair in
+  {lq_params; lq_decode}
+
 (* list=allpages *)
 
 type allpage = {
