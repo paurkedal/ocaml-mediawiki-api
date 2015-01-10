@@ -1,4 +1,4 @@
-(* Copyright (C) 2013  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2015  Petter Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,6 +16,8 @@
 
 open Mwapi
 open Mwapi_utils
+
+type continue = (string * string) list
 
 type 'a meta_query = {
   mq_params : Qparams.t;
@@ -41,18 +43,21 @@ type ('m, 'l, 'a, 'am) query = {
   query_meta : 'm;
   query_list : 'l;
   query_pages : ('a, 'am) page list;
-  query_continue : (string * string) list;
+  query_continue : continue option;
 }
 
 val no_meta : unit meta_query
 val no_list : (unit, [`N]) list_query
 val no_pages : (unit, unit, [`N]) page_query
 
-val combine : 'm meta_query ->
+val combine : ?continue: continue ->
+	      'm meta_query ->
 	      ('l, 'lk) list_query ->
 	      ('a, 'am, 'ak) page_query -> ('m, 'l, 'a, 'am) query request
 
-val only_meta : 'm meta_query -> ('m, unit, unit, unit) query request
-val only_list : ('l, 'lk) list_query -> (unit, 'l, unit, unit) query request
-val only_pages : ('a, 'am, 'ak) page_query ->
+val only_meta : ?continue: continue -> 'm meta_query ->
+		('m, unit, unit, unit) query request
+val only_list : ?continue: continue -> ('l, 'lk) list_query ->
+		(unit, 'l, unit, unit) query request
+val only_pages : ?continue: continue -> ('a, 'am, 'ak) page_query ->
 		 (unit, unit, 'a, 'am) query request
