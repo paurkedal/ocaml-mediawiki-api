@@ -21,6 +21,8 @@ open Unprime_list
 module String_map = Prime_map.Make (String)
 module String_set = Set.Make (String)
 
+type 'a ident = 'a
+
 let failwith_f fmt = ksprintf failwith fmt
 
 let pair x y = x, y

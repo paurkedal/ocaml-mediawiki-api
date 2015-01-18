@@ -20,7 +20,8 @@ Library "mediawiki-api"
     Mwapi_parse,
     Mwapi_query,
     Mwapi_query_list,
-    Mwapi_query_prop
+    Mwapi_query_prop,
+    Mwapi_query_prop_revisions
   BuildDepends:
     calendar, cohttp, cohttp.lwt,
     kojson, lwt, prime, ssl, xdg-basedir, yojson

@@ -17,6 +17,8 @@
 module String_map : Prime_map.S with type key = string
 module String_set : Set.S with type elt = string
 
+type 'a ident = 'a
+
 val failwith_f : ('a, unit, string, 'b) format4 -> 'a
 
 val pair : 'a -> 'b -> 'a * 'b
