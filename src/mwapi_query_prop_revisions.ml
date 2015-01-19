@@ -46,8 +46,9 @@ module Rvprop = struct
   end
 
   module Reply = struct
-    type ids = {revid : int; parentid : int}
-    type flags = {minor : bool}
+    type ids = {revid: int; parentid: int}
+    type flags = {minor: bool}
+    type content = {contentformat: string; contentbody: string}
     include Scheme (struct type 'a t = 'a end)
   end
 
@@ -83,6 +84,11 @@ module Rvprop = struct
 
     let decode_flags = "minor"^?: fun o -> pair {minor = o <> None}
 
+    let decode_content =
+      "contentformat"^: K.string *> fun contentformat ->
+      "*"^: K.string *> fun contentbody ->
+      pair {contentformat; contentbody}
+
     let ids = true, decode_ids
     let flags = true, decode_flags
     let timestamp = true, decode (K.convert_string "time" caltime_of_string)
@@ -94,7 +100,7 @@ module Rvprop = struct
     let contentmodel = true, decode K.string "contentmodel"
     let comment = true, decode K.string "comment"
     let parsedcomment = true, decode K.string "parsedcomment"
-    let content = true, decode K.string "content"
+    let content = true, decode_content
     let tags = true, decode (K.list K.string) "tags"
 
     let to_string r =
@@ -180,7 +186,8 @@ let revisions
       K.list begin
 	K.assoc begin fun jain ->
 	  let reply, jain = Rvprop.Request.decode rvprop jain in
-	  Ka.stop reply jain
+	  (* Request for content implies contentmodel. *)
+	  Ka.stop reply (Ka.drop ["contentmodel"] jain)
 	end
       end *> pair in
   let prop_decode_missing jain = (), jain in

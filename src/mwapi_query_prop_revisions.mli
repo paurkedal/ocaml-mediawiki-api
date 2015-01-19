@@ -41,8 +41,9 @@ module Rvprop : sig
   end
 
   module Reply : sig
-    type ids = {revid : int; parentid : int}
-    type flags = {minor : bool}
+    type ids = {revid: int; parentid: int}
+    type flags = {minor: bool}
+    type content = {contentformat: string; contentbody: string}
     include SCHEME with type 'a mode := 'a ident
   end
 
@@ -62,7 +63,7 @@ module Rvprop : sig
     val contentmodel : string requested
     val comment : string requested
     val parsedcomment : string requested
-    val content : string requested
+    val content : Reply.content requested
     val tags : string list requested
   end
 
