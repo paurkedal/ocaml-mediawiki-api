@@ -55,24 +55,24 @@ module Rvprop = struct
   module Request = struct
     open Reply
 
-    type 'a requested = bool * (Kojson.jain -> 'a * Kojson.jain)
+    type 'a requested = string option * (Kojson.jain -> 'a * Kojson.jain)
     include Scheme (struct type 'a t = 'a requested end)
 
     let decode_unit jain = (), jain
 
     let none = {
-      ids = false, decode_unit;
-      flags = false, decode_unit;
-      timestamp = false, decode_unit;
-      user = false, decode_unit;
-      userid = false, decode_unit;
-      size = false, decode_unit;
-      sha1 = false, decode_unit;
-      contentmodel = false, decode_unit;
-      comment = false, decode_unit;
-      parsedcomment = false, decode_unit;
-      content = false, decode_unit;
-      tags = false, decode_unit;
+      ids = None, decode_unit;
+      flags = None, decode_unit;
+      timestamp = None, decode_unit;
+      user = None, decode_unit;
+      userid = None, decode_unit;
+      size = None, decode_unit;
+      sha1 = None, decode_unit;
+      contentmodel = None, decode_unit;
+      comment = None, decode_unit;
+      parsedcomment = None, decode_unit;
+      content = None, decode_unit;
+      tags = None, decode_unit;
     }
 
     let decode f name = name^: f *> pair
@@ -89,35 +89,35 @@ module Rvprop = struct
       "*"^: K.string *> fun contentbody ->
       pair {contentformat; contentbody}
 
-    let ids = true, decode_ids
-    let flags = true, decode_flags
-    let timestamp = true, decode (K.convert_string "time" caltime_of_string)
-				 "timestamp"
-    let user = true, decode K.string "user"
-    let userid = true, decode K.int "userid"
-    let size = true, decode K.int "size"
-    let sha1 = true, decode K.string "sha1"
-    let contentmodel = true, decode K.string "contentmodel"
-    let comment = true, decode K.string "comment"
-    let parsedcomment = true, decode K.string "parsedcomment"
-    let content = true, decode_content
-    let tags = true, decode (K.list K.string) "tags"
+    let ids = Some "ids", decode_ids
+    let flags = Some "flags", decode_flags
+    let timestamp = Some "timestamp",
+      decode (K.convert_string "time" caltime_of_string) "timestamp"
+    let user = Some "user", decode K.string "user"
+    let userid = Some "userid", decode K.int "userid"
+    let size = Some "size", decode K.int "size"
+    let sha1 = Some "sha1", decode K.string "sha1"
+    let contentmodel = Some "contentmodel", decode K.string "contentmodel"
+    let comment = Some "comment", decode K.string "comment"
+    let parsedcomment = Some "parsedcomment", decode K.string "parsedcomment"
+    let content = Some "content", decode_content
+    let tags = Some "tags", decode (K.list K.string) "tags"
 
     let to_string r =
       let buf = Buffer.create 256 in
       let add s = Buffer.add_string buf s; Buffer.add_char buf '|' in
-      if fst r.ids then add "ids";
-      if fst r.flags then add "flags";
-      if fst r.timestamp then add "timestamp";
-      if fst r.user then add "user";
-      if fst r.userid then add "userid";
-      if fst r.size then add "size";
-      if fst r.sha1 then add "sha1";
-      if fst r.contentmodel then add "contentmodel";
-      if fst r.comment then add "comment";
-      if fst r.parsedcomment then add "parsedcomment";
-      if fst r.content then add "content";
-      if fst r.tags then add "tags";
+      Option.iter add (fst r.ids);
+      Option.iter add (fst r.flags);
+      Option.iter add (fst r.timestamp);
+      Option.iter add (fst r.user);
+      Option.iter add (fst r.userid);
+      Option.iter add (fst r.size);
+      Option.iter add (fst r.sha1);
+      Option.iter add (fst r.contentmodel);
+      Option.iter add (fst r.comment);
+      Option.iter add (fst r.parsedcomment);
+      Option.iter add (fst r.content);
+      Option.iter add (fst r.tags);
       Buffer.sub buf 0 (Buffer.length buf - 1)
 
     let decode r jain =
