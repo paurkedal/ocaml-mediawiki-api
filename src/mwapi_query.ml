@@ -21,7 +21,18 @@ open Unprime
 open Unprime_list
 open Unprime_option
 
+(* The continue field may contain a mixture of at least strings and integers,
+ * but they must be flattened to strings when passed back anyway, so just save
+ * them as such. *)
 type continue = (string * string) list
+
+let continue_value_of_json = function
+  | `Null -> ""				(* Probably unused. *)
+  | `Bool x -> string_of_bool x		(* Probably unused. *)
+  | `Int x -> string_of_int x
+  | `Float x -> string_of_float x	(* Probably unused. *)
+  | `String x -> x
+  | `Assoc _ | `List _ -> failwith "Scalar expected."
 
 type 'm meta_query = {
   mq_params : Qparams.t;
@@ -55,7 +66,8 @@ let no_list = {lq_params = Qparams.empty; lq_decode = fun jain -> ((), jain)}
 let no_pages = {pq_params = Qparams.empty; pq_decode = fun jain -> ([], jain)}
 
 let decode_continue =
-  Option.map (K.assoc (Ka.map (fun k -> K.string *> fun v -> (k, v))))
+  Option.map @@ K.assoc @@ Ka.map @@ fun k ->
+  K.convert "continuation parameter" continue_value_of_json *> fun v -> (k, v)
 
 let combine ?continue mq lq pq =
   let params =
