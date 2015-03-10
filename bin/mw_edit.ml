@@ -147,17 +147,6 @@ let loadspec_of_arg arg =
   | None -> `Load arg
   | Some (x, fp) -> `Load_from (x, fp)
 
-let login ~name ~password mw =
-  match_lwt
-    match_lwt Mwapi_lwt.call (Mwapi_login.login ~name ~password ()) mw with
-    | `Need_token token ->
-      Mwapi_lwt.call (Mwapi_login.login ~name ~password ~token ()) mw
-    | status -> Lwt.return status
-  with
-  | `Success -> Lwt.return_unit
-  | status ->
-    fail_f "Login failed: %s" (Mwapi_login.string_of_login_status status)
-
 let () =
   let opt_api = ref None in
   let opt_cert = ref None in
@@ -254,7 +243,7 @@ let () =
     try_lwt
       begin match !opt_login with
       | None -> Lwt.return_unit
-      | Some (_ as name, password) -> login ~name ~password mw
+      | Some (_ as name, password) -> Utils.login ~name ~password mw
       end >>
       edit ~do_replace:!opt_replace ~page:(`Title page) ~target subst mw >>
       Mwapi_lwt.close_api mw
