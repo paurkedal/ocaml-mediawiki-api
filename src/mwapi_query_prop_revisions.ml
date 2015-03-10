@@ -171,7 +171,7 @@ let revisions
     |> (if expandtemplates then Qparams.add "rvexpandtemplates" "" else ident)
     |> (if generatexml then Qparams.add "rvgeneratexml" "" else ident)
     |> (if parse then Qparams.add "rvparse" "" else ident)
-    |> Option.fold (Qparams.add "rvsection") section
+    |> Option.fold (Qparams.add "rvsection" *< string_of_int) section
     |> Option.fold (Qparams.add "rvcontinue") continue
     |> Option.fold
 	(function

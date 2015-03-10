@@ -82,7 +82,7 @@ val revisions :
   ?expandtemplates: bool ->
   ?generatexml: bool ->
   ?parse: bool ->
-  ?section: string ->
+  ?section: int ->
   ?continue: string ->
   ?diffto: [`Id of int | `Prev | `Next | `Cur | `Text of string] ->
   ?contentformat: string ->
