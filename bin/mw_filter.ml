@@ -73,19 +73,30 @@ let main api login page_title cmd =
 let () =
   let api_t =
     Arg.(required & opt (some uri_conv) None &
-	 info ~docv:"URI" ~doc:"Location of api.php" ["api"]) in
+	 info ~docs:"CONNECTION OPTIONS"
+	      ~docv:"URI" ~doc:"Location of api.php" ["api"]) in
   let login_t =
     Arg.(value & opt (some up_conv) None &
-	 info ~docv:"USER:PASS"
+	 info ~docs:"CONNECTION OPTIONS"
+	      ~docv:"USER:PASS"
 	      ~doc:"Login with the given credentials." ["login"]) in
   let page_title_t =
     Arg.(required & opt (some string) None &
-	 info ~docv:"TITLE" ~doc:"Title of the page to edit."
+	 info ~docs:"PAGE SELECTION OPTIONS"
+	      ~docv:"TITLE" ~doc:"Title of the page to edit."
 	      ["P"; "page-title"]) in
   let cmd_t =
     Arg.(value & pos_all string [] & info ~docv:"COMMAND" []) in
   let main_t = Term.(pure main $ api_t $ login_t $ page_title_t $ cmd_t) in
-  match Term.(eval (main_t, info "mw-filter")) with
+  let doc = "filter a wiki page though a command and write it back" in
+  let man = [
+    `S "DESCRIPTION";
+    `P "$(tname) filters a wiki page though an external command and saves \
+	the result back to the same wiki page. E.g.";
+    `P "$(tname) ... -P 'Main Page' -- sed -f script.sed";
+    `P "would run the main page though a sed script.";
+  ] in
+  match Term.(eval (main_t, info ~doc ~man "mw-filter")) with
   | `Error `Parse -> exit 64
   | `Error `Term -> exit 69
   | `Error `Exn -> exit 70
