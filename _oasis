@@ -41,3 +41,10 @@ Executable "mw-edit"
   Path: bin
   MainIs: mw_edit.ml
   CompiledObject: best
+
+Executable "mw-filter"
+  Build$: flag(tools)
+  BuildDepends: cmdliner, mediawiki-api
+  Path: bin
+  MainIs: mw_filter.ml
+  CompiledObject: best
