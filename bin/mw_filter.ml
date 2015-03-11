@@ -15,8 +15,12 @@
  *)
 
 open Cmdliner
+open Printf
+open Unprime_list
 open Unprime_string
 open Utils
+
+module Int_map = Map.Make (struct type t = int let compare = compare end)
 
 let uri_parser s =
   try `Ok (Uri.of_string s)
@@ -31,9 +35,47 @@ let up_parser s =
 let up_printer fmtr (u, p) = Format.pp_print_string fmtr (u ^ ":********")
 let up_conv = up_parser, up_printer
 
-let filter_text cmd text =
+type filter_action = [`Commit | `Skip | `Fail]
+
+let action_of_string = function
+  | "c" | "commit" -> `Commit
+  | "s" | "skip" -> `Skip
+  | "f" | "fail" -> `Fail
+  | _ -> invalid_arg "action_of_string"
+
+let string_of_action = function
+  | `Commit -> "commit"
+  | `Skip -> "skip"
+  | `Fail -> "fail"
+
+let default_actions = Int_map.singleton 0 `Commit, `Fail
+
+let actions_parser s =
+  let push s (am, ad) =
+    match String.cut_affix "=" s with
+    | None -> invalid_arg "Missing equal sign."
+    | Some ("else", a) -> am, action_of_string a
+    | Some (c, a) ->
+      Int_map.add (int_of_string c) (action_of_string a) am, ad in
+  try `Ok (List.fold push (String.chop_affix "," s) default_actions)
+  with Invalid_argument msg -> `Error msg
+
+let actions_printer fmtr (am, ad) =
+  Int_map.iter (fun c a -> Format.fprintf fmtr "%d=%s," c (string_of_action a))
+	       am;
+  Format.pp_print_string fmtr "else=";
+  Format.pp_print_string fmtr (string_of_action ad)
+
+let actions_conv = actions_parser, actions_printer
+
+type filter_config = {
+  fc_command : string * string array;
+  fc_actions : filter_action Int_map.t * filter_action;
+}
+
+let filter_text ~fc text =
   let res = ref "" in
-  Lwt_process.with_process_full cmd begin fun process ->
+  Lwt_process.with_process_full fc.fc_command begin fun process ->
     let writer =
       Lwt_io.write process#stdin text >>
       Lwt_io.close process#stdin in
@@ -41,32 +83,48 @@ let filter_text cmd text =
     let logger =
       Lwt_stream.iter_s (Lwt_io.eprintlf "<stderr> %s")
 			(Lwt_io.read_lines process#stderr) in
-    Lwt.join [writer; reader; logger]
-  end >|= fun () -> !res
+    Lwt.join [writer; reader; logger] >>
+    match_lwt process#status with
+    | Unix.WEXITED ec ->
+      begin match
+	try Int_map.find ec (fst fc.fc_actions)
+	with Not_found -> snd fc.fc_actions
+      with
+      | `Commit -> Lwt.return (`Replace !res)
+      | `Skip -> Lwt.return `Skip
+      | `Fail -> fail_f "Subprocess exited with %d" ec
+      end
+    | Unix.WSIGNALED sn | Unix.WSTOPPED sn ->
+      fail_f "Subprocess received signal %d" sn
+  end
 
-let filter_page mw ~page cmd =
+let filter_page ~fc ~page mw =
   lwt text = Mwapi_lwt.call Mwapi_parse.(parse ~page wikitext) mw in
-  lwt text' = filter_text cmd text in
-  lwt token = Utils.get_edit_token ~page mw in
-  if text = text' then
-    Lwt_log.info "No changes."
-  else
+  match_lwt filter_text ~fc text with
+  | `Skip -> Lwt_log.info "Skipping due to exit code."
+  | `Replace text' when text' = text -> Lwt_log.info "No changes to write back."
+  | `Replace text' as op ->
+    lwt token = Utils.get_edit_token ~page mw in
     Utils.call_edit
-      Mwapi_edit.(edit ~token ~page ~create:`May_not ~recreate:`May_not
-		       ~op:(`Replace text') ()) mw
+      Mwapi_edit.(edit ~token ~page ~create:`May_not ~recreate:`May_not ~op ())
+      mw
 
-let main api login page_title cmd =
+let main api login page_title actions cmd =
   let page = `Title page_title in
   match cmd with
   | [] -> exit 0
   | (prog :: _) ->
+    let fc = {
+      fc_command = prog, Array.of_list cmd;
+      fc_actions = actions;
+    } in
     Lwt_main.run begin
       lwt mw = Mwapi_lwt.open_api api in
       begin match login with
       | None -> Lwt.return_unit
       | Some (_ as name, password) -> Utils.login ~name ~password mw
       end >>
-      filter_page mw ~page (prog, Array.of_list cmd) >>
+      filter_page ~fc ~page mw >>
       Mwapi_lwt.close_api mw
     end
 
@@ -85,9 +143,19 @@ let () =
 	 info ~docs:"PAGE SELECTION OPTIONS"
 	      ~docv:"TITLE" ~doc:"Title of the page to edit."
 	      ["P"; "page-title"]) in
+  let actions_t =
+    Arg.(value & opt actions_conv default_actions &
+	 info ~docv:"N=ACTION,...,N=ACTION[,else=ACTION]"
+	      ~doc:"For exit code N, proceed with ACTION, which can be
+		    one of: \
+		    $(b,commit) to write back the modified page, \
+		    $(b,skip) to silently leave the page unchanged, \
+		    $(b,fail) to abort the program with an error."
+	      ["actions"]) in
   let cmd_t =
     Arg.(value & pos_all string [] & info ~docv:"COMMAND" []) in
-  let main_t = Term.(pure main $ api_t $ login_t $ page_title_t $ cmd_t) in
+  let main_t = Term.(pure main $ api_t $ login_t $ page_title_t $
+		     actions_t $ cmd_t) in
   let doc = "filter a wiki page though a command and write it back" in
   let man = [
     `S "DESCRIPTION";
