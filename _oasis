@@ -1,10 +1,10 @@
-OASISFormat: 0.3
+OASISFormat: 0.4
 Name: mediawiki-api
-Version: 0.4
+Version: 0.5.3
 Synopsis: MediaWiki API
 Authors: Petter A. Urkedal
 License: LGPL-3 with OCaml linking exception
-Plugins: DevFiles (0.3), META (0.3)
+Plugins: DevFiles (0.4), META (0.4)
 BuildTools: ocamlbuild
 
 Flag tools
@@ -28,7 +28,7 @@ Library "mediawiki-api"
 
 Document "mediawiki-api"
   Title: MediaWiki API
-  Type: ocamlbuild (0.3)
+  Type: ocamlbuild (0.4)
   InstallDir: $htmldir/html
   BuildTools+: ocamldoc
   XOCamlbuildPath: src
