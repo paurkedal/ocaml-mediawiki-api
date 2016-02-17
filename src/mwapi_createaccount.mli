@@ -1,4 +1,4 @@
-(* Copyright (C) 2013  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,13 +17,13 @@
 open Mwapi
 
 val createaccount :
-	name: string ->
-	?password: string ->
-	?domain: string ->
-	?token: string ->
-	?email: string ->
-	?realname: string ->
-	?mailpassword: bool ->
-	?reason: string ->
-	?language: string ->
-	unit -> [`Needtoken of string | `Success of string * int] request
+        name: string ->
+        ?password: string ->
+        ?domain: string ->
+        ?token: string ->
+        ?email: string ->
+        ?realname: string ->
+        ?mailpassword: bool ->
+        ?reason: string ->
+        ?language: string ->
+        unit -> [`Needtoken of string | `Success of string * int] request

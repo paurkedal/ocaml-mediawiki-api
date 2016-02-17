@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,7 +19,7 @@ open Mwapi
 type client
 
 val open_api : ?cert: string -> ?certkey: string -> ?logger: Lwt_log.logger ->
-	       Uri.t -> client Lwt.t
+               Uri.t -> client Lwt.t
 val close_api : client -> unit Lwt.t
 
 val get_json : (string * string) list -> client -> json Lwt.t

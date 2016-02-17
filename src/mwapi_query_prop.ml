@@ -1,4 +1,4 @@
-(* Copyright (C) 2013  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -51,25 +51,25 @@ let decode_pages decode_prop decode_missing_prop =
   "pages"^:
     K.assoc (Ka.map begin fun _ ->
       K.assoc begin
-	"title"^: K.string *> fun title ->
-	"invalid"^?:
-	  begin function
-	  | None ->
-	    "ns"^: K.int *> fun ns ->
-	    "missing"^?:
-	      begin function
-	      | None ->
-		"pageid"^: K.int *> fun pageid ->
-		decode_prop *> fun (prop, rest) ->
-		Ka.stop (`Present (title, ns, pageid, prop))
-			(Ka.drop possibly_redundant_labels rest)
-	      | Some _ ->
-		decode_missing_prop *> fun (prop, rest) ->
-		Ka.stop (`Missing (title, ns, prop))
-			(Ka.drop possibly_redundant_labels rest)
-	      end
-	  | Some _ -> Ka.stop (`Invalid title)
-	  end
+        "title"^: K.string *> fun title ->
+        "invalid"^?:
+          begin function
+          | None ->
+            "ns"^: K.int *> fun ns ->
+            "missing"^?:
+              begin function
+              | None ->
+                "pageid"^: K.int *> fun pageid ->
+                decode_prop *> fun (prop, rest) ->
+                Ka.stop (`Present (title, ns, pageid, prop))
+                        (Ka.drop possibly_redundant_labels rest)
+              | Some _ ->
+                decode_missing_prop *> fun (prop, rest) ->
+                Ka.stop (`Missing (title, ns, prop))
+                        (Ka.drop possibly_redundant_labels rest)
+              end
+          | Some _ -> Ka.stop (`Invalid title)
+          end
       end
     end) *> pair
 
@@ -82,14 +82,14 @@ let for_titles titles prop =
 let for_pageids pageids prop =
   let pq_params =
     Qparams.add "pageids" (String.concat "|" (List.map string_of_int pageids))
-		prop.prop_params in
+                prop.prop_params in
   let pq_decode = decode_pages prop.prop_decode prop.prop_decode_missing in
   {pq_params; pq_decode}
 
 let for_revids revids prop =
   let pq_params =
     Qparams.add "revids" (String.concat "|" (List.map string_of_int revids))
-		prop.prop_params in
+                prop.prop_params in
   let pq_decode = decode_pages prop.prop_decode prop.prop_decode_missing in
   {pq_params; pq_decode}
 
@@ -114,7 +114,7 @@ let info =
     let in_redirect = in_redirect <> None in
     let in_new = in_new <> None in
     pair {in_touched; in_lastrevid; in_counter; in_length;
-	  in_redirect; in_new} in
+          in_redirect; in_new} in
   { prop_params = Qparams.singleton "prop" "info";
     prop_decode;
     prop_decode_missing = pair () }
@@ -133,9 +133,9 @@ type protection = {
 let decode_protection =
   K.assoc begin
     "type"^: K.string_enum ["edit", `Edit; "move", `Move]
-			*> fun protection_type ->
+                        *> fun protection_type ->
     "level"^: K.string_enum ["sysop", `Sysop; "autoconfirmed", `Autoconfirmed]
-			*> fun protection_level ->
+                        *> fun protection_level ->
     "expiry"^: K.string *> fun protection_expiry ->
     Ka.stop {protection_type; protection_level; protection_expiry}
   end

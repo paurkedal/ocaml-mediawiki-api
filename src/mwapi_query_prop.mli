@@ -1,4 +1,4 @@
-(* Copyright (C) 2013  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -30,16 +30,16 @@ type ('a, 'am) nprop = ('a, 'am, [`N]) prop
 (** A property which cannot be used as a generator. *)
 
 val (&) : ('a, 'am, 'ak) prop ->
-	  ('b, 'bm, 'bk) prop -> ('a * 'b, 'am * 'bm) nprop
+          ('b, 'bm, 'bk) prop -> ('a * 'b, 'am * 'bm) nprop
 
 val for_titles : string list -> ('a, 'am, 'k) prop -> ('a, 'am, 'k) page_query
 val for_pageids : int list -> ('a, 'am, 'k) prop -> ('a, 'am, 'k) page_query
 val for_revids : int list -> ('a, 'am, 'k) prop -> ('a, 'am, 'k) page_query
 (*
 val for_list : ('b, 'bm, [< `G]) list_query -> ('a, 'am, 'k) prop ->
-	       ('a, 'am, [`N]) page_query
+               ('a, 'am, [`N]) page_query
 val for_prop : ('b, 'bm, [< `G]) page_query -> ('a, 'am, 'k) prop ->
-	       ('a, 'am, [`N]) page_query
+               ('a, 'am, [`N]) page_query
 *)
 
 

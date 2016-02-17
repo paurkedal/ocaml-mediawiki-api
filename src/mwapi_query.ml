@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -27,10 +27,10 @@ open Unprime_option
 type continue = (string * string) list
 
 let continue_value_of_json = function
-  | `Null -> ""				(* Probably unused. *)
-  | `Bool x -> string_of_bool x		(* Probably unused. *)
+  | `Null -> ""                     (* Probably unused. *)
+  | `Bool x -> string_of_bool x     (* Probably unused. *)
   | `Int x -> string_of_int x
-  | `Float x -> string_of_float x	(* Probably unused. *)
+  | `Float x -> string_of_float x   (* Probably unused. *)
   | `String x -> x
   | `Assoc _ | `List _ -> failwith "Scalar expected."
 

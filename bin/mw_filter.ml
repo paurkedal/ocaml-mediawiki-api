@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -62,7 +62,7 @@ let actions_parser s =
 
 let actions_printer fmtr (am, ad) =
   Int_map.iter (fun c a -> Format.fprintf fmtr "%d=%s," c (string_of_action a))
-	       am;
+               am;
   Format.pp_print_string fmtr "else=";
   Format.pp_print_string fmtr (string_of_action ad)
 
@@ -82,13 +82,13 @@ let filter_text ~fc text =
     let reader = Lwt_io.read process#stdout >|= fun s -> res := s in
     let logger =
       Lwt_stream.iter_s (Lwt_io.eprintlf "<stderr> %s")
-			(Lwt_io.read_lines process#stderr) in
+                        (Lwt_io.read_lines process#stderr) in
     Lwt.join [writer; reader; logger] >>
     match_lwt process#status with
     | Unix.WEXITED ec ->
       begin match
-	try Int_map.find ec (fst fc.fc_actions)
-	with Not_found -> snd fc.fc_actions
+        try Int_map.find ec (fst fc.fc_actions)
+        with Not_found -> snd fc.fc_actions
       with
       | `Commit -> Lwt.return (`Replace !res)
       | `Skip -> Lwt.return `Skip
@@ -131,36 +131,36 @@ let main api login page_title actions cmd =
 let () =
   let api_t =
     Arg.(required & opt (some uri_conv) None &
-	 info ~docs:"CONNECTION OPTIONS"
-	      ~docv:"URI" ~doc:"Location of api.php" ["api"]) in
+         info ~docs:"CONNECTION OPTIONS"
+              ~docv:"URI" ~doc:"Location of api.php" ["api"]) in
   let login_t =
     Arg.(value & opt (some up_conv) None &
-	 info ~docs:"CONNECTION OPTIONS"
-	      ~docv:"USER:PASS"
-	      ~doc:"Login with the given credentials." ["login"]) in
+         info ~docs:"CONNECTION OPTIONS"
+              ~docv:"USER:PASS"
+              ~doc:"Login with the given credentials." ["login"]) in
   let page_title_t =
     Arg.(required & opt (some string) None &
-	 info ~docs:"PAGE SELECTION OPTIONS"
-	      ~docv:"TITLE" ~doc:"Title of the page to edit."
-	      ["P"; "page-title"]) in
+         info ~docs:"PAGE SELECTION OPTIONS"
+              ~docv:"TITLE" ~doc:"Title of the page to edit."
+              ["P"; "page-title"]) in
   let actions_t =
     Arg.(value & opt actions_conv default_actions &
-	 info ~docv:"N=ACTION,...,N=ACTION[,else=ACTION]"
-	      ~doc:"For exit code N, proceed with ACTION, which can be
-		    one of: \
-		    $(b,commit) to write back the modified page, \
-		    $(b,skip) to silently leave the page unchanged, \
-		    $(b,fail) to abort the program with an error."
-	      ["actions"]) in
+         info ~docv:"N=ACTION,...,N=ACTION[,else=ACTION]"
+              ~doc:"For exit code N, proceed with ACTION, which can be
+                    one of: \
+                    $(b,commit) to write back the modified page, \
+                    $(b,skip) to silently leave the page unchanged, \
+                    $(b,fail) to abort the program with an error."
+              ["actions"]) in
   let cmd_t =
     Arg.(value & pos_all string [] & info ~docv:"COMMAND" []) in
   let main_t = Term.(pure main $ api_t $ login_t $ page_title_t $
-		     actions_t $ cmd_t) in
+                     actions_t $ cmd_t) in
   let doc = "filter a wiki page though a command and write it back" in
   let man = [
     `S "DESCRIPTION";
     `P "$(tname) filters a wiki page though an external command and saves \
-	the result back to the same wiki page. E.g.";
+        the result back to the same wiki page. E.g.";
     `P "$(tname) ... -P 'Main Page' -- sed -f script.sed";
     `P "would run the main page though a sed script.";
   ] in

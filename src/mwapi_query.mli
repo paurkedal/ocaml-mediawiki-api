@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -30,9 +30,9 @@ type ('a, 'k) list_query = {
 }
 
 type ('a, 'am) page =
-  [ `Present of string * int * int * 'a	(* title, ns, pageid, prop *)
-  | `Missing of string * int * 'am	(* title, ns, prop *)
-  | `Invalid of string ]		(* title *)
+  [ `Present of string * int * int * 'a (* title, ns, pageid, prop *)
+  | `Missing of string * int * 'am      (* title, ns, prop *)
+  | `Invalid of string ]                (* title *)
 
 type ('a, 'am, 'k) page_query = {
   pq_params : Qparams.t;
@@ -51,13 +51,13 @@ val no_list : (unit, [`N]) list_query
 val no_pages : (unit, unit, [`N]) page_query
 
 val combine : ?continue: continue ->
-	      'm meta_query ->
-	      ('l, 'lk) list_query ->
-	      ('a, 'am, 'ak) page_query -> ('m, 'l, 'a, 'am) query request
+              'm meta_query ->
+              ('l, 'lk) list_query ->
+              ('a, 'am, 'ak) page_query -> ('m, 'l, 'a, 'am) query request
 
 val only_meta : ?continue: continue -> 'm meta_query ->
-		('m, unit, unit, unit) query request
+                ('m, unit, unit, unit) query request
 val only_list : ?continue: continue -> ('l, 'lk) list_query ->
-		(unit, 'l, unit, unit) query request
+                (unit, 'l, unit, unit) query request
 val only_pages : ?continue: continue -> ('a, 'am, 'ak) page_query ->
-		 (unit, unit, 'a, 'am) query request
+                 (unit, unit, 'a, 'am) query request

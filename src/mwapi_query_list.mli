@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -85,22 +85,22 @@ type 'a allimage = {
 }
 
 val allimages :
-	?sort: [`Name | `Timestamp] ->
-	?dir: [`Ascending | `Descending | `Newer | `Older] ->
-	?start: string ->
-	?continue: string ->
-	?stop: string ->
-	?tstart: CalendarLib.Calendar.t ->
-	?tstop: CalendarLib.Calendar.t ->
-	?prefix: string ->
-	?minsize: int ->
-	?maxsize: int ->
-	?sha1: [`Hex of string | `Base36 of string] ->
-	?user: string ->
-	?filterbots: [`All | `Bots | `Nobots] ->
-	?mime: string ->
-	?limit: int ->
-	'a Aiprop.t -> ('a allimage list, [`G]) list_query
+        ?sort: [`Name | `Timestamp] ->
+        ?dir: [`Ascending | `Descending | `Newer | `Older] ->
+        ?start: string ->
+        ?continue: string ->
+        ?stop: string ->
+        ?tstart: CalendarLib.Calendar.t ->
+        ?tstop: CalendarLib.Calendar.t ->
+        ?prefix: string ->
+        ?minsize: int ->
+        ?maxsize: int ->
+        ?sha1: [`Hex of string | `Base36 of string] ->
+        ?user: string ->
+        ?filterbots: [`All | `Bots | `Nobots] ->
+        ?mime: string ->
+        ?limit: int ->
+        'a Aiprop.t -> ('a allimage list, [`G]) list_query
 
 (** {2 list=allpages} *)
 

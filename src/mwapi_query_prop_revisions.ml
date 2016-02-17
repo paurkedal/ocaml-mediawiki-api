@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,7 +23,7 @@ module Rvprop = struct
 
   module Scheme (T : sig type 'a t end) = struct
     type ('ids, 'flags, 'timestamp, 'user, 'userid, 'size, 'sha1,
-	  'contentmodel, 'comment, 'parsedcomment, 'content, 'tags) t =
+          'contentmodel, 'comment, 'parsedcomment, 'content, 'tags) t =
     {
       ids: 'ids T.t;
       flags: 'flags T.t;
@@ -135,28 +135,28 @@ module Rvprop = struct
       let tags, jain = snd r.tags jain in
       let open Reply in
       { ids; flags; timestamp; user; userid; size; sha1;
-	contentmodel; comment; parsedcomment; content; tags }, jain
+        contentmodel; comment; parsedcomment; content; tags }, jain
   end
 end
 
 let revisions
-	?limit
-	?startid
-	?stopid
-	?tstart
-	?tstop
-	?(dir = `Older)
-	?user
-	?excludeuser
-	?tag
-	?(expandtemplates = false)
-	?(generatexml = false)
-	?(parse = false)
-	?section
-	?continue
-	?diffto
-	?contentformat
-	rvprop =
+        ?limit
+        ?startid
+        ?stopid
+        ?tstart
+        ?tstop
+        ?(dir = `Older)
+        ?user
+        ?excludeuser
+        ?tag
+        ?(expandtemplates = false)
+        ?(generatexml = false)
+        ?(parse = false)
+        ?section
+        ?continue
+        ?diffto
+        ?contentformat
+        rvprop =
   let prop_params = Qparams.singleton "prop" "revisions"
     |> Qparams.add "rvprop" (Rvprop.Request.to_string rvprop)
     |> Option.fold (Qparams.add "rvlimit" *< string_of_int) limit
@@ -174,21 +174,21 @@ let revisions
     |> Option.fold (Qparams.add "rvsection" *< string_of_int) section
     |> Option.fold (Qparams.add "rvcontinue") continue
     |> Option.fold
-	(function
-	  | `Id id -> Qparams.add "rvdiffto" (string_of_int id)
-	  | `Prev -> Qparams.add "rvdiffto" "prev"
-	  | `Next -> Qparams.add "rvdiffto" "next"
-	  | `Cur -> Qparams.add "rvdiffto" "cur"
-	  | `Text s -> Qparams.add "rvdifftotext" s) diffto
+        (function
+          | `Id id -> Qparams.add "rvdiffto" (string_of_int id)
+          | `Prev -> Qparams.add "rvdiffto" "prev"
+          | `Next -> Qparams.add "rvdiffto" "next"
+          | `Cur -> Qparams.add "rvdiffto" "cur"
+          | `Text s -> Qparams.add "rvdifftotext" s) diffto
     |> Option.fold (Qparams.add "rvcontentformat") contentformat in
   let prop_decode =
     "revisions"^:
       K.list begin
-	K.assoc begin fun jain ->
-	  let reply, jain = Rvprop.Request.decode rvprop jain in
-	  (* Request for content implies contentmodel. *)
-	  Ka.stop reply (Ka.drop ["contentmodel"] jain)
-	end
+        K.assoc begin fun jain ->
+          let reply, jain = Rvprop.Request.decode rvprop jain in
+          (* Request for content implies contentmodel. *)
+          Ka.stop reply (Ka.drop ["contentmodel"] jain)
+        end
       end *> pair in
   let prop_decode_missing jain = (), jain in
   Mwapi_query_prop.({prop_params; prop_decode; prop_decode_missing})

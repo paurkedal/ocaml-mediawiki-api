@@ -1,4 +1,4 @@
-(* Copyright (C) 2013  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -40,12 +40,12 @@ let prim_parse params {prop_names; prop_decode} =
   let request_decode =
     "parse"^:
       K.assoc begin
-	prop_decode *> fun (x, rest) -> Ka.stop x rest
+        prop_decode *> fun (x, rest) -> Ka.stop x rest
       end *> pair in
   {request_method = `GET; request_params; request_decode}
 
 let parse ?(disablepp = false) ?(redirects = false) ?contentformat ?contentmodel
-	  ~page ?section prop =
+          ~page ?section prop =
   let params = []
     |> pass_if "disablepp" disablepp
     |> pass_if "redirects" redirects
@@ -53,9 +53,9 @@ let parse ?(disablepp = false) ?(redirects = false) ?contentformat ?contentmodel
     |> pass_opt ident "contentformat" contentformat
     |> pass_opt ident "contentmodel" contentmodel
     |> (match page with
-	| `Title s -> pass ident "page" s
-	| `Id i -> pass string_of_int "pageid" i
-	| `Rev i -> pass string_of_int "oldid" i) in
+        | `Title s -> pass ident "page" s
+        | `Id i -> pass string_of_int "pageid" i
+        | `Rev i -> pass string_of_int "oldid" i) in
   prim_parse params prop
 
 let title =
@@ -88,19 +88,19 @@ let sections =
   let prop_decode =
     "sections"^:
       K.list (K.assoc
-	begin
-	  "toclevel"^: K.int *> fun section_toclevel ->
-	  "level"^: K_repair.int *> fun section_level ->
-	  "line"^: K.string *> fun section_line ->
-	  "number"^: K.string *> fun section_number ->
-	  "index"^: K.string *> fun section_index ->
-	  "fromtitle"^: K.string *> fun section_fromtitle ->
-	  "byteoffset"^: K.int *> fun section_byteoffset ->
-	  "anchor"^: K.string *> fun section_anchor ->
-	  Ka.stop {
-	    section_toclevel; section_level; section_line; section_number;
-	    section_index; section_fromtitle;
-	    section_byteoffset; section_anchor
-	  }
-	end) *> fun sections rest -> (sections, rest) in
+        begin
+          "toclevel"^: K.int *> fun section_toclevel ->
+          "level"^: K_repair.int *> fun section_level ->
+          "line"^: K.string *> fun section_line ->
+          "number"^: K.string *> fun section_number ->
+          "index"^: K.string *> fun section_index ->
+          "fromtitle"^: K.string *> fun section_fromtitle ->
+          "byteoffset"^: K.int *> fun section_byteoffset ->
+          "anchor"^: K.string *> fun section_anchor ->
+          Ka.stop {
+            section_toclevel; section_level; section_line; section_number;
+            section_index; section_fromtitle;
+            section_byteoffset; section_anchor
+          }
+        end) *> fun sections rest -> (sections, rest) in
   {prop_names = "sections"; prop_decode}

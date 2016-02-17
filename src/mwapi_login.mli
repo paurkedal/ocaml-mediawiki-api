@@ -1,4 +1,4 @@
-(* Copyright (C) 2013  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -31,6 +31,6 @@ type login_status =
 val string_of_login_status : login_status -> string
 
 val login : name: string -> password: string -> ?domain: string ->
-	    ?token: string -> unit -> login_status request
+            ?token: string -> unit -> login_status request
 
 val logout : unit request

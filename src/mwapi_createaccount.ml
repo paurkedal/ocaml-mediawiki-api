@@ -1,4 +1,4 @@
-(* Copyright (C) 2013  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -34,17 +34,17 @@ let request_decode =
       "username"^?: Option.map K.string *> fun username ->
       "userid"^?: Option.map K_repair.int *> fun userid ->
       Ka.stop
-	begin match result, username, userid with
-	| (`Success | `Warning), Some username, Some userid ->
-	  `Success (username, userid)
-	| `Needtoken, None, None ->
-	  `Needtoken token
-	| _ -> failwith "Unrecognized response from createaccount."
-	end
+        begin match result, username, userid with
+        | (`Success | `Warning), Some username, Some userid ->
+          `Success (username, userid)
+        | `Needtoken, None, None ->
+          `Needtoken token
+        | _ -> failwith "Unrecognized response from createaccount."
+        end
     end *> pair
 
 let createaccount ~name ?password ?domain ?token ?email ?realname
-		  ?(mailpassword = false) ?reason ?language () =
+                  ?(mailpassword = false) ?reason ?language () =
   let request_params = ["action", "createaccount"; "name", name]
     |> pass_opt ident "password" password
     |> pass_opt ident "domain" domain

@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -39,7 +39,7 @@ let login ~name ~password mw =
 let get_edit_token ~page mw =
   let for_pages =
     match page with `Title tt -> Mwapi_query_prop.for_titles [tt]
-		  | `Id id -> Mwapi_query_prop.for_pageids [id] in
+                  | `Id id -> Mwapi_query_prop.for_pageids [id] in
   let req = Mwapi_query.only_pages (for_pages Mwapi_query_prop.intoken_edit) in
   lwt res = Mwapi_lwt.call req mw in
   match res.Mwapi_query.query_pages with

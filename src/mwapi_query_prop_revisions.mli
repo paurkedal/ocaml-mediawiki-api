@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,7 +23,7 @@ module Rvprop : sig
     type 'a mode
 
     type ('ids, 'flags, 'timestamp, 'user, 'userid, 'size, 'sha1,
-	  'contentmodel, 'comment, 'parsedcomment, 'content, 'tags) t =
+          'contentmodel, 'comment, 'parsedcomment, 'content, 'tags) t =
     {
       ids: 'ids mode;
       flags: 'flags mode;
@@ -52,7 +52,7 @@ module Rvprop : sig
     include SCHEME with type 'a mode := 'a requested
 
     val none : (unit, unit, unit, unit, unit, unit,
-		unit, unit, unit, unit, unit, unit) t
+                unit, unit, unit, unit, unit, unit) t
     val ids : Reply.ids requested
     val flags : Reply.flags requested
     val timestamp : CalendarLib.Calendar.t requested

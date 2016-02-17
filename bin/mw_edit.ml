@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -54,13 +54,13 @@ let find_insertion_point level ipt sections_result =
   match ipt with
   | Before_section tt ->
     Option.map (fun i -> i, (fun s -> `Prepend (break_after s)))
-	       (find_section level tt sections_result)
+               (find_section level tt sections_result)
   | After_section tt ->
     Option.map (fun i -> i, (fun s -> `Append ("\n\n" ^ s)))
-	       (find_section level tt sections_result)
+               (find_section level tt sections_result)
   | Bottom_of_section tt ->
     Option.map (fun i -> i, (fun s -> `Append ("\n\n" ^ s)))
-	       (find_section (level - 1) tt sections_result)
+               (find_section (level - 1) tt sections_result)
 
 let edit ?(do_replace = false) ~page ~target subst mw =
   lwt create, section, tmpl, make_op =
@@ -69,32 +69,32 @@ let edit ?(do_replace = false) ~page ~target subst mw =
       lwt r = Mwapi_lwt.call Mwapi_parse.(parse ~page sections) mw in
       begin match find_section secn_level secn_title r with
       | Some i ->
-	Mwapi_lwt.call Mwapi_parse.(parse ~page ~section:i wikitext) mw
-	  >|= fun s ->
-	let tmpl = if do_replace then new_section secn_level secn_title
-				 else Template.of_string s in
-	(`May_not, Some (`No i), tmpl, (fun s -> `Replace s))
+        Mwapi_lwt.call Mwapi_parse.(parse ~page ~section:i wikitext) mw
+          >|= fun s ->
+        let tmpl = if do_replace then new_section secn_level secn_title
+                                 else Template.of_string s in
+        (`May_not, Some (`No i), tmpl, (fun s -> `Replace s))
       | None ->
-	begin match
-	  List.search (fun ipt -> find_insertion_point secn_level ipt r) ipts
-	with
-	| Some (i, op) ->
-	  let tmpl = new_section secn_level secn_title in
-	  Lwt.return (`May_not, Some (`No i), tmpl, op)
-	| None ->
-	  Lwt.fail (Failure "Could not locate section to edit or place to \
-			     insert it.")
-	end
+        begin match
+          List.search (fun ipt -> find_insertion_point secn_level ipt r) ipts
+        with
+        | Some (i, op) ->
+          let tmpl = new_section secn_level secn_title in
+          Lwt.return (`May_not, Some (`No i), tmpl, op)
+        | None ->
+          Lwt.fail (Failure "Could not locate section to edit or place to \
+                             insert it.")
+        end
       end
     | Edit_page ->
       try_lwt
-	if do_replace then
-	  Lwt.return (`May, None, new_page, (fun s -> `Replace s))
-	else
-	  Mwapi_lwt.call Mwapi_parse.(parse ~page wikitext) mw >|= fun s ->
-	  (`May_not, None, Template.of_string s, (fun s -> `Replace s))
+        if do_replace then
+          Lwt.return (`May, None, new_page, (fun s -> `Replace s))
+        else
+          Mwapi_lwt.call Mwapi_parse.(parse ~page wikitext) mw >|= fun s ->
+          (`May_not, None, Template.of_string s, (fun s -> `Replace s))
       with Wiki_error {wiki_error_code = "missingtitle"} ->
-	Lwt.return (`Must, None, new_page, (fun s -> `Replace s)) in
+        Lwt.return (`Must, None, new_page, (fun s -> `Replace s)) in
   let tmpl = Template.subst_map subst tmpl in
   lwt token = Utils.get_edit_token ~page mw in
   let op = make_op (Template.to_string tmpl) in
@@ -137,8 +137,8 @@ let load_template dirs x =
     | dir :: dirs ->
       let fp = Filename.concat dir fn in
       begin
-	try_lwt load_template_from fp
-	with Unix.Unix_error (Unix.ENOENT, _, _) -> loop dirs
+        try_lwt load_template_from fp
+        with Unix.Unix_error (Unix.ENOENT, _, _) -> loop dirs
       end in
   loop dirs
 
@@ -171,9 +171,9 @@ let () =
       "<title> The title of the page to edit.";
     "-level", Arg.Int (set_option opt_level),
       "<level> The level of the target section specified as the number of \
-	       equality signs in the corresponding MediaWiki delimiters. \
-	       The default level is 2, e.g. the normal section top-level. \
-	       This applies to -section, -add-after, and -add-before.";
+               equality signs in the corresponding MediaWiki delimiters. \
+               The default level is 2, e.g. the normal section top-level. \
+               This applies to -section, -add-after, and -add-before.";
     "-section", Arg.String (set_option opt_section),
       "<title> The title of the target section.";
     "-add-after",
@@ -194,8 +194,8 @@ let () =
       "<x> Load <x> from the standard input.";
     "-l", Arg.String (fun s -> opt_subst := loadspec_of_arg s :: !opt_subst),
       "<x>(=<file>)? Load a template from <file> if specified, otherwise from \
-		     the first match of <x>.tmpl under the include path, and \
-		     substitute it for <x>.";
+                     the first match of <x>.tmpl under the include path, and \
+                     substitute it for <x>.";
     "-I", Arg.String (fun s -> opt_includes := s :: !opt_includes),
       "<dir> Add <dir> to the include path.";
   ] in
@@ -205,7 +205,7 @@ let () =
     | None -> misuse (sprintf "The %s option is mandatory." name)
     | Some arg -> arg in
   Arg.parse arg_specs
-	    (fun _ -> misuse "Not expecting positional arguments.") arg_usage;
+            (fun _ -> misuse "Not expecting positional arguments.") arg_usage;
   let api = mandatory "-api" opt_api in
   let page = mandatory "-page" opt_page in
   let target =
@@ -219,27 +219,27 @@ let () =
     | Some _, None, _ ->
       misuse "The -section option is required when targeting a section." in
   if List.count (function `Load_stdin _ -> true | _ -> false)
-		!opt_subst > 1 then
+                !opt_subst > 1 then
     misuse "Only one mapping can be loaded from standard input.";
 
   Lwt_main.run begin
     lwt mw = Mwapi_lwt.open_api ?cert:!opt_cert ?certkey:!opt_certkey api in
     lwt subst =
       Lwt_list.fold_left_s
-	(fun subst ->
-	  function
-	  | `Load x ->
-	    load_template !opt_includes x >|= fun tmpl ->
-	    String_map.add x (Template.subst_map subst tmpl) subst
-	  | `Load_from (x, fp) ->
-	    load_template_from fp >|= fun tmpl ->
-	    String_map.add x (Template.subst_map subst tmpl) subst
-	  | `Load_stdin x ->
-	    load_template_stdin () >|= fun tmpl ->
-	    String_map.add x (Template.subst_map subst tmpl) subst
-	  | `Set (x, tmpl) ->
-	    Lwt.return (String_map.add x (Template.subst_map subst tmpl) subst))
-	String_map.empty !opt_subst in
+        (fun subst ->
+          function
+          | `Load x ->
+            load_template !opt_includes x >|= fun tmpl ->
+            String_map.add x (Template.subst_map subst tmpl) subst
+          | `Load_from (x, fp) ->
+            load_template_from fp >|= fun tmpl ->
+            String_map.add x (Template.subst_map subst tmpl) subst
+          | `Load_stdin x ->
+            load_template_stdin () >|= fun tmpl ->
+            String_map.add x (Template.subst_map subst tmpl) subst
+          | `Set (x, tmpl) ->
+            Lwt.return (String_map.add x (Template.subst_map subst tmpl) subst))
+        String_map.empty !opt_subst in
     try_lwt
       begin match !opt_login with
       | None -> Lwt.return_unit
