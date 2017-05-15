@@ -15,6 +15,7 @@
  *)
 
 open Cmdliner
+open Lwt.Infix
 open Printf
 open Unprime_list
 open Unprime_string

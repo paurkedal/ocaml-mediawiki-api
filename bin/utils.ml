@@ -18,9 +18,6 @@ open Printf
 open Unprime_list
 open Unprime_option
 
-let (@@) f x = f x
-let (>>=) = Lwt.(>>=)
-let (>|=) = Lwt.(>|=)
 let fail_f fmt = ksprintf (fun s -> Lwt.fail (Failure s)) fmt
 
 let log_section = Lwt_log.Section.make "mw-tools"

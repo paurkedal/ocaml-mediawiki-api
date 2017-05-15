@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Lwt.Infix
 open Mwapi
 open Mwapi_utils
 open Printf
