@@ -1,0 +1,17 @@
+true: bin_annot
+
+"lib": include
+
+true: \
+    package(calendar), \
+    package(cohttp), package(cohttp.lwt), \
+    package(kojson), \
+    package(lwt), \
+    package(prime), \
+    package(ssl), \
+    package(xdg-basedir), \
+    package(yojson)
+
+<bin/*>: \
+    package(cmdliner), \
+    package(pcre)
