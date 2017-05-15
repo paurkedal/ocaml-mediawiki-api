@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -51,27 +51,27 @@ let decode_pages decode_prop decode_missing_prop =
   "pages"^:
     K.assoc (Ka.map begin fun _ ->
       K.assoc begin
-        "title"^: K.string *> fun title ->
+        "title"^: K.string %> fun title ->
         "invalid"^?:
           begin function
           | None ->
-            "ns"^: K.int *> fun ns ->
+            "ns"^: K.int %> fun ns ->
             "missing"^?:
               begin function
               | None ->
-                "pageid"^: K.int *> fun pageid ->
-                decode_prop *> fun (prop, rest) ->
+                "pageid"^: K.int %> fun pageid ->
+                decode_prop %> fun (prop, rest) ->
                 Ka.stop (`Present (title, ns, pageid, prop))
                         (Ka.drop possibly_redundant_labels rest)
               | Some _ ->
-                decode_missing_prop *> fun (prop, rest) ->
+                decode_missing_prop %> fun (prop, rest) ->
                 Ka.stop (`Missing (title, ns, prop))
                         (Ka.drop possibly_redundant_labels rest)
               end
           | Some _ -> Ka.stop (`Invalid title)
           end
       end
-    end) *> pair
+    end) %> pair
 
 let for_titles titles prop =
   let pq_params =
@@ -105,10 +105,10 @@ type info = {
 }
 let info =
   let prop_decode =
-    "touched"^: K.string *> fun in_touched ->
-    "lastrevid"^: K.int *> fun in_lastrevid ->
-    "counter"^: K.int *> fun in_counter ->
-    "length"^: K.int *> fun in_length ->
+    "touched"^: K.string %> fun in_touched ->
+    "lastrevid"^: K.int %> fun in_lastrevid ->
+    "counter"^: K.int %> fun in_counter ->
+    "length"^: K.int %> fun in_length ->
     "redirect"^?: fun in_redirect ->
     "new"^?: fun in_new ->
     let in_redirect = in_redirect <> None in
@@ -121,7 +121,7 @@ let info =
 
 let make_inprop inprop decode = {
   prop_params = Qparams.of_list ["prop", "info"; "inprop", inprop];
-  prop_decode = inprop^: decode *> pair;
+  prop_decode = inprop^: decode %> pair;
   prop_decode_missing = pair ();
 }
 
@@ -133,10 +133,10 @@ type protection = {
 let decode_protection =
   K.assoc begin
     "type"^: K.string_enum ["edit", `Edit; "move", `Move]
-                        *> fun protection_type ->
+                        %> fun protection_type ->
     "level"^: K.string_enum ["sysop", `Sysop; "autoconfirmed", `Autoconfirmed]
-                        *> fun protection_level ->
-    "expiry"^: K.string *> fun protection_expiry ->
+                        %> fun protection_level ->
+    "expiry"^: K.string %> fun protection_expiry ->
     Ka.stop {protection_type; protection_level; protection_expiry}
   end
 let inprop_protection = make_inprop "protection" decode_protection
@@ -148,20 +148,20 @@ type urls = {
 }
 let inprop_url =
   let prop_decode =
-    "fullurl"^: K.string *> fun fullurl ->
-    "editurl"^: K.string *> fun editurl ->
+    "fullurl"^: K.string %> fun fullurl ->
+    "editurl"^: K.string %> fun editurl ->
     pair {fullurl; editurl} in
   { prop_params = Qparams.of_list ["prop", "info"; "inprop", "url"];
     prop_decode; prop_decode_missing = pair () }
 
 let make_intoken ?(on_missing = false) which =
   let prop_params = Qparams.of_list ["prop", "info"; "intoken", which] in
-  let prop_decode = (which ^ "token")^: K.string *> pair in
+  let prop_decode = (which ^ "token")^: K.string %> pair in
   {prop_params; prop_decode; prop_decode_missing = pair ()}
 
 let make_intoken_missing ?(on_missing = false) which =
   let prop_params = Qparams.of_list ["prop", "info"; "intoken", which] in
-  let prop_decode = (which ^ "token")^: K.string *> pair in
+  let prop_decode = (which ^ "token")^: K.string %> pair in
   {prop_params; prop_decode; prop_decode_missing = prop_decode}
 
 let intoken_edit = make_intoken_missing "edit"

@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -51,10 +51,10 @@ module Acprop = struct
     keys = "size";
     decode =
       let open Kojson_pattern in
-      "size"^: K.int *> fun acsize_size ->
-      "pages"^: K.int *> fun acsize_pages ->
-      "files"^: K.int *> fun acsize_files ->
-      "subcats"^: K.int *> fun acsize_subcats ->
+      "size"^: K.int %> fun acsize_size ->
+      "pages"^: K.int %> fun acsize_pages ->
+      "files"^: K.int %> fun acsize_files ->
+      "subcats"^: K.int %> fun acsize_subcats ->
       pair {acsize_size; acsize_pages; acsize_files; acsize_subcats};
   }
 
@@ -62,7 +62,7 @@ module Acprop = struct
     keys = "hidden";
     decode =
       let open Kojson_pattern in
-      "hidden"^?: Option.map K.string *> fun hidden ->
+      "hidden"^?: Option.map K.string %> fun hidden ->
       pair (hidden <> None)
   }
 end
@@ -88,9 +88,9 @@ let allcategories
     |> (match dir with
         | `Ascending -> ident
         | `Descending -> Qparams.add "acdir" "descending")
-    |> Option.fold (Qparams.add "acmin" *< string_of_int) min
-    |> Option.fold (Qparams.add "acmax" *< string_of_int) max
-    |> Option.fold (Qparams.add "aclimit" *< string_of_int) limit
+    |> Option.fold (Qparams.add "acmin" % string_of_int) min
+    |> Option.fold (Qparams.add "acmax" % string_of_int) max
+    |> Option.fold (Qparams.add "aclimit" % string_of_int) limit
     |> (if prop.Acprop.keys <> ""
         then Qparams.add "acprop" prop.Acprop.keys
         else ident) in
@@ -99,11 +99,11 @@ let allcategories
     "allcategories"^:
       K.list begin
         K.assoc begin
-          "*"^: K.string *> fun ac_title ->
-          prop.Acprop.decode *> fun (ac_prop, jain) ->
+          "*"^: K.string %> fun ac_title ->
+          prop.Acprop.decode %> fun (ac_prop, jain) ->
           Ka.stop {ac_title; ac_prop} jain
         end
-      end *> pair in
+      end %> pair in
   {lq_params; lq_decode}
 
 (* list=allimages *)
@@ -128,31 +128,31 @@ module Aiprop = struct
 
   let timestamp =
     { keys = "timestamp";
-      decode = "timestamp"^: K.convert_string "time" caltime_of_string *> pair }
-  let user = {keys = "user"; decode = "user"^: K.string *> pair}
-  let userid = {keys = "userid"; decode = "userid"^: K_repair.int *> pair}
-  let comment = {keys = "comment"; decode = "comment"^: K.string *> pair}
+      decode = "timestamp"^: K.convert_string "time" caltime_of_string %> pair }
+  let user = {keys = "user"; decode = "user"^: K.string %> pair}
+  let userid = {keys = "userid"; decode = "userid"^: K_repair.int %> pair}
+  let comment = {keys = "comment"; decode = "comment"^: K.string %> pair}
   let parsedcomment =
-    {keys = "parsedcomment"; decode = "parsedcomment"^: K.string *> pair}
+    {keys = "parsedcomment"; decode = "parsedcomment"^: K.string %> pair}
   let canonicaltitle =
-    {keys = "canonicaltitle"; decode = "canonicaltitle"^: K.string *> pair}
+    {keys = "canonicaltitle"; decode = "canonicaltitle"^: K.string %> pair}
   let url =
     let decode =
-      "url"^: K.string *> fun aiurl_url ->
-      "descriptionurl"^: K.string *> fun aiurl_descriptionurl ->
+      "url"^: K.string %> fun aiurl_url ->
+      "descriptionurl"^: K.string %> fun aiurl_descriptionurl ->
       pair {aiurl_url; aiurl_descriptionurl} in
     {keys = "url"; decode}
   let size =
     let decode =
-      "size"^: K.int *> fun aisize_size ->
-      "width"^: K.int *> fun aisize_width ->
-      "height"^: K.int *> fun aisize_height ->
+      "size"^: K.int %> fun aisize_size ->
+      "width"^: K.int %> fun aisize_width ->
+      "height"^: K.int %> fun aisize_height ->
       pair {aisize_size; aisize_width; aisize_height} in
     {keys = "size"; decode}
-  let sha1 = {keys = "sha1"; decode = "sha1"^: K.string *> pair}
-  let mime = {keys = "mime"; decode = "mime"^: K.string *> pair}
-  let mediatype = {keys = "mediatype"; decode = "mediatype"^: K.string *> pair}
-  let bitdepth = {keys = "bitdepth"; decode = "bitdepth"^: K_repair.int *> pair}
+  let sha1 = {keys = "sha1"; decode = "sha1"^: K.string %> pair}
+  let mime = {keys = "mime"; decode = "mime"^: K.string %> pair}
+  let mediatype = {keys = "mediatype"; decode = "mediatype"^: K.string %> pair}
+  let bitdepth = {keys = "bitdepth"; decode = "bitdepth"^: K_repair.int %> pair}
 end
 
 type 'a allimage = {
@@ -190,11 +190,11 @@ let allimages
     |> Option.fold (Qparams.add "aifrom") start
     |> Option.fold (Qparams.add "aistop") stop
     |> Option.fold (Qparams.add "aicontinue") continue
-    |> Option.fold (Qparams.add "aistart" *< string_of_caltime) tstart
-    |> Option.fold (Qparams.add "aiend" *< string_of_caltime) tstop
+    |> Option.fold (Qparams.add "aistart" % string_of_caltime) tstart
+    |> Option.fold (Qparams.add "aiend" % string_of_caltime) tstop
     |> Option.fold (Qparams.add "aiprefix") prefix
-    |> Option.fold (Qparams.add "aiminsize" *< string_of_int) minsize
-    |> Option.fold (Qparams.add "aimaxsize" *< string_of_int) maxsize
+    |> Option.fold (Qparams.add "aiminsize" % string_of_int) minsize
+    |> Option.fold (Qparams.add "aimaxsize" % string_of_int) maxsize
     |> Option.fold (function `Hex s -> Qparams.add "aisha1" s
                            | `Base36 s -> Qparams.add "aisha1base36" s) sha1
     |> Option.fold (Qparams.add "aiuser") user
@@ -203,19 +203,19 @@ let allimages
         | `Bots -> Qparams.add "aifilterbots" "bots"
         | `Nobots -> Qparams.add "aifilterbots" "nobots")
     |> Option.fold (Qparams.add "aimime") mime
-    |> Option.fold (Qparams.add "ailimit" *< string_of_int) limit in
+    |> Option.fold (Qparams.add "ailimit" % string_of_int) limit in
   let lq_decode =
     let open Kojson_pattern in
     "allimages"^:
       K.list begin
         K.assoc begin
-          "name"^: K.string *> fun ai_name ->
-          "ns"^: K.int *> fun ai_ns ->
-          "title"^: K.string *> fun ai_title ->
-          prop.Aiprop.decode *> fun (ai_prop, jain) ->
+          "name"^: K.string %> fun ai_name ->
+          "ns"^: K.int %> fun ai_ns ->
+          "title"^: K.string %> fun ai_title ->
+          prop.Aiprop.decode %> fun (ai_prop, jain) ->
           Ka.stop {ai_name; ai_ns; ai_title; ai_prop} jain
         end
-      end *> pair in
+      end %> pair in
   {lq_params; lq_decode}
 
 (* list=allpages *)
@@ -231,12 +231,12 @@ let lq_decode =
   "allpages"^:
     K.list begin
       K.assoc begin
-        "pageid"^: K.int *> fun ap_pageid ->
-        "ns"^: K.int *> fun ap_ns ->
-        "title"^: K.string *> fun ap_title ->
+        "pageid"^: K.int %> fun ap_pageid ->
+        "ns"^: K.int %> fun ap_ns ->
+        "title"^: K.string %> fun ap_title ->
         Ka.stop {ap_pageid; ap_ns; ap_title}
       end
-    end *> pair
+    end %> pair
 
 let allpages
         ?start ?continue ?stop
@@ -257,14 +257,14 @@ let allpages
     |> Option.fold (Qparams.add "apcontinue") continue
     |> Option.fold (Qparams.add "apto") stop
     |> Option.fold (Qparams.add "apprefix") prefix
-    |> Option.fold (Qparams.add "apnamespace" *< string_of_int) namespace
+    |> Option.fold (Qparams.add "apnamespace" % string_of_int) namespace
     |> Option.fold (Qparams.add "apfilterredir")
         (match filterredir with
           | `All -> None
           | `Redirects -> Some "redirects"
           | `Nonredirects -> Some "nonredirects")
-    |> Option.fold (Qparams.add "apminsize" *< string_of_int) minsize
-    |> Option.fold (Qparams.add "apmaxsize" *< string_of_int) maxsize
+    |> Option.fold (Qparams.add "apminsize" % string_of_int) minsize
+    |> Option.fold (Qparams.add "apmaxsize" % string_of_int) maxsize
     |> (match prtype with
         | [] -> ident
         | xs -> Qparams.add "prtype" @@ String.concat "|" @@
@@ -279,7 +279,7 @@ let allpages
         | `All -> ident
         | `Cascading -> Qparams.add "prfiltercascade" "cascading"
         | `Noncascading -> Qparams.add "prfiltercascade" "noncascading")
-    |> Option.fold (Qparams.add "aplimit" *< string_of_int) limit
+    |> Option.fold (Qparams.add "aplimit" % string_of_int) limit
     |> (match dir with
         | `Ascending -> ident
         | `Descending -> Qparams.add "apdir" "descending")

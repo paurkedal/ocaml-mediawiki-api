@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -29,10 +29,10 @@ let decode_result = function
 let request_decode =
   "createaccount"^:
     K.assoc begin
-      "token"^: K.string *> fun token ->
-      "result"^: K.convert "createaccount_result" decode_result *> fun result ->
-      "username"^?: Option.map K.string *> fun username ->
-      "userid"^?: Option.map K_repair.int *> fun userid ->
+      "token"^: K.string %> fun token ->
+      "result"^: K.convert "createaccount_result" decode_result %> fun result ->
+      "username"^?: Option.map K.string %> fun username ->
+      "userid"^?: Option.map K_repair.int %> fun userid ->
       Ka.stop
         begin match result, username, userid with
         | (`Success | `Warning), Some username, Some userid ->
@@ -41,7 +41,7 @@ let request_decode =
           `Needtoken token
         | _ -> failwith "Unrecognized response from createaccount."
         end
-    end *> pair
+    end %> pair
 
 let createaccount ~name ?password ?domain ?token ?email ?realname
                   ?(mailpassword = false) ?reason ?language () =

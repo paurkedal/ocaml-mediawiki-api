@@ -17,6 +17,7 @@ depends: [
   "ocamlbuild" {build}
   "pcre"
   "prime"
+  "ppx_compose" {build}
   "ssl"
   "topkg" {build}
   "xdg-basedir"

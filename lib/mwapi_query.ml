@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -67,7 +67,7 @@ let no_pages = {pq_params = Qparams.empty; pq_decode = fun jain -> ([], jain)}
 
 let decode_continue =
   Option.map @@ K.assoc @@ Ka.map @@ fun k ->
-  K.convert "continuation parameter" continue_value_of_json *> fun v -> (k, v)
+  K.convert "continuation parameter" continue_value_of_json %> fun v -> (k, v)
 
 let combine ?continue mq lq pq =
   let params =
@@ -79,13 +79,13 @@ let combine ?continue mq lq pq =
   let request_params =
     ("action", "query") :: (cont_params @ Qparams.to_params params) in
   let request_decode =
-    "continue"^?: decode_continue *> fun query_continue ->
+    "continue"^?: decode_continue %> fun query_continue ->
     "query"^: K.assoc begin fun jain ->
       let query_meta, jain = mq.mq_decode jain in
       let query_list, jain = lq.lq_decode jain in
       let query_pages, jain = pq.pq_decode jain in
       Ka.stop {query_meta; query_list; query_pages; query_continue} jain
-    end *> pair in
+    end %> pair in
   {request_method = `GET; request_params; request_decode}
 
 let only_meta ?continue mq = combine ?continue mq no_list no_pages

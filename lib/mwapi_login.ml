@@ -1,4 +1,4 @@
-(* Copyright (C) 2013  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -73,10 +73,10 @@ let login_status_of_json' ?token = function
 let decode_login =
   "login"^:
     K.assoc begin
-      "token"^?: Option.map K.string *> fun token ->
-      "result"^: K.convert "login_status" (login_status_of_json' ?token) *>
+      "token"^?: Option.map K.string %> fun token ->
+      "result"^: K.convert "login_status" (login_status_of_json' ?token) %>
       Ka.stop
-    end *> pair
+    end %> pair
 
 let login ~name ~password ?domain ?token () =
   let params = ["action", "login"; "lgname", name; "lgpassword", password]

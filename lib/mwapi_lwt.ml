@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -83,12 +83,12 @@ let close_api {endpoint; cookiejar} =
 
 let decode_star =
   K.assoc begin
-    "*"^: K.string *> fun text ->
+    "*"^: K.string %> fun text ->
     Ka.stop text
   end
 
 let decode_warnings =
-  K.assoc_or_null (Ka.map (fun m -> decode_star *> fun msg -> (m, msg)))
+  K.assoc_or_null (Ka.map (fun m -> decode_star %> fun msg -> (m, msg)))
 
 let make_json_warning_buffer () =
   let json_warnings = Lwt_sequence.create () in
@@ -114,15 +114,15 @@ let decode_json logger resp body =
         begin
           "error"^:
             K.assoc begin
-              "code"^: K.string *> fun wiki_error_code ->
-              "info"^: K.string *> fun wiki_error_info ->
-              "*"^?: Option.map K.string *> fun wiki_error_details ->
+              "code"^: K.string %> fun wiki_error_code ->
+              "info"^: K.string %> fun wiki_error_info ->
+              "*"^?: Option.map K.string %> fun wiki_error_details ->
               Ka.stop {wiki_error_code; wiki_error_info; wiki_error_details}
-            end *> fun err ->
+            end %> fun err ->
           Ka.stop (emit_json_warnings logger >> Lwt.fail (Wiki_error err))
         end;
         begin
-          "warnings"^?: Option.map decode_warnings *> fun wiki_warnings ->
+          "warnings"^?: Option.map decode_warnings %> fun wiki_warnings ->
           fun rest ->
             let result = `Assoc (Ka.any rest) in
             emit_json_warnings logger >>
@@ -177,5 +177,5 @@ let call {request_method; request_params; request_decode} mw =
   end request_params mw >>= fun json ->
   let warn, emit_json_warnings = make_json_warning_buffer () in
   let result = Kojson.jin_of_json ~warn json
-            |> K.assoc_or_null (request_decode *> uncurry Ka.stop) in
+            |> K.assoc_or_null (request_decode %> uncurry Ka.stop) in
   emit_json_warnings mw.logger >> Lwt.return result

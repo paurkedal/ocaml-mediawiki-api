@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -75,18 +75,18 @@ module Rvprop = struct
       tags = None, decode_unit;
     }
 
-    let decode f name = name^: f *> pair
+    let decode f name = name^: f %> pair
 
     let decode_ids =
-      "revid"^: K.int *> fun revid ->
-      "parentid"^: K.int *> fun parentid ->
+      "revid"^: K.int %> fun revid ->
+      "parentid"^: K.int %> fun parentid ->
       pair {revid; parentid}
 
     let decode_flags = "minor"^?: fun o -> pair {minor = o <> None}
 
     let decode_content =
-      "contentformat"^: K.string *> fun contentformat ->
-      "*"^: K.string *> fun contentbody ->
+      "contentformat"^: K.string %> fun contentformat ->
+      "*"^: K.string %> fun contentbody ->
       pair {contentformat; contentbody}
 
     let ids = Some "ids", decode_ids
@@ -159,11 +159,11 @@ let revisions
         rvprop =
   let prop_params = Qparams.singleton "prop" "revisions"
     |> Qparams.add "rvprop" (Rvprop.Request.to_string rvprop)
-    |> Option.fold (Qparams.add "rvlimit" *< string_of_int) limit
-    |> Option.fold (Qparams.add "rvstartid" *< string_of_int) startid
-    |> Option.fold (Qparams.add "rvendid" *< string_of_int) stopid
-    |> Option.fold (Qparams.add "rvstart" *< string_of_caltime) tstart
-    |> Option.fold (Qparams.add "rvend" *< string_of_caltime) tstop
+    |> Option.fold (Qparams.add "rvlimit" % string_of_int) limit
+    |> Option.fold (Qparams.add "rvstartid" % string_of_int) startid
+    |> Option.fold (Qparams.add "rvendid" % string_of_int) stopid
+    |> Option.fold (Qparams.add "rvstart" % string_of_caltime) tstart
+    |> Option.fold (Qparams.add "rvend" % string_of_caltime) tstop
     |> (match dir with `Newer -> Qparams.add "rvdir" "newer" | `Older -> ident)
     |> Option.fold (Qparams.add "rvuser") user
     |> Option.fold (Qparams.add "rvexcludeuser") excludeuser
@@ -171,7 +171,7 @@ let revisions
     |> (if expandtemplates then Qparams.add "rvexpandtemplates" "" else ident)
     |> (if generatexml then Qparams.add "rvgeneratexml" "" else ident)
     |> (if parse then Qparams.add "rvparse" "" else ident)
-    |> Option.fold (Qparams.add "rvsection" *< string_of_int) section
+    |> Option.fold (Qparams.add "rvsection" % string_of_int) section
     |> Option.fold (Qparams.add "rvcontinue") continue
     |> Option.fold
         (function
@@ -189,6 +189,6 @@ let revisions
           (* Request for content implies contentmodel. *)
           Ka.stop reply (Ka.drop ["contentmodel"] jain)
         end
-      end *> pair in
+      end %> pair in
   let prop_decode_missing jain = (), jain in
   Mwapi_query_prop.({prop_params; prop_decode; prop_decode_missing})

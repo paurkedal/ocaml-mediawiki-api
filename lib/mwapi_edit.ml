@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -42,21 +42,21 @@ let string_of_watchlist = function
 let request_decode =
   "edit"^:
     K.assoc begin
-      "result"^: K.literal (`String "Success") *> fun () ->
-      "pageid"^: K.int *> fun edit_pageid ->
-      "title"^: K.string *> fun edit_title ->
+      "result"^: K.literal (`String "Success") %> fun () ->
+      "pageid"^: K.int %> fun edit_pageid ->
+      "title"^: K.string %> fun edit_title ->
       begin
         "nochange"^?: function
         | Some _ -> Ka.stop None
         | None ->
-          "oldrevid"^: K.int *> fun change_oldrevid ->
-          "newrevid"^: K.int *> fun change_newrevid ->
-          "newtimestamp"^: K.string *> fun change_newtimestamp ->
+          "oldrevid"^: K.int %> fun change_oldrevid ->
+          "newrevid"^: K.int %> fun change_newrevid ->
+          "newtimestamp"^: K.string %> fun change_newtimestamp ->
           Ka.stop (Some {change_oldrevid; change_newrevid;
                          change_newtimestamp})
-      end *> fun edit_change ->
+      end %> fun edit_change ->
       {edit_pageid; edit_title; edit_change}
-    end *> pair
+    end %> pair
 
 let edit ?token ?summary ?(minor = false) ?(bot = true)
          ?basetimestamp ?starttimestamp ?(recreate = `May_not) ?(create = `May)
@@ -89,8 +89,8 @@ let edit ?token ?summary ?(minor = false) ?(bot = true)
         | `Append s -> pass ident "appendtext" s
         | `Prepend s -> pass ident "prependtext" s
         | `Bracket (s0, s1) ->
-          pass ident "prependtext" s0 *> pass ident "appendtext" s1
+          pass ident "prependtext" s0 %> pass ident "appendtext" s1
         | `Undo i -> pass string_of_int "undo" i
         | `Undo_upto (i, j) ->
-          pass string_of_int "undo" i *> pass string_of_int "undo_after" j) in
+          pass string_of_int "undo" i %> pass string_of_int "undo_after" j) in
   {request_method = `POST; request_params; request_decode}
