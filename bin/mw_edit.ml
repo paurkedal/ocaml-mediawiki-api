@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -126,9 +126,9 @@ let load_template_from fp =
   lwt st = Lwt_unix.stat fp in
   Lwt_io.with_file Lwt_io.input fp
     (fun ic ->
-      let s = String.create st.Unix.st_size in
+      let s = Bytes.create st.Unix.st_size in
       Lwt_io.read_into_exactly ic s 0 st.Unix.st_size >>
-      Lwt.return (template_of_string s))
+      Lwt.return (template_of_string (Bytes.to_string s)))
 
 let load_template dirs x =
   let fn = x ^ ".tmpl" in
