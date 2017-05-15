@@ -13,6 +13,9 @@ true: \
     package(xdg-basedir), \
     package(yojson)
 
+<lib/mwapi_lwt.*>: package(lwt.ppx)
+
 <bin/*>: \
     package(cmdliner), \
+    package(lwt.ppx), \
     package(pcre)

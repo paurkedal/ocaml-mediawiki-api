@@ -63,10 +63,10 @@ let find_insertion_point level ipt sections_result =
                (find_section (level - 1) tt sections_result)
 
 let edit ?(do_replace = false) ~page ~target subst mw =
-  lwt create, section, tmpl, make_op =
+  let%lwt create, section, tmpl, make_op =
     match target with
     | Edit_section (secn_level, secn_title, ipts) ->
-      lwt r = Mwapi_lwt.call Mwapi_parse.(parse ~page sections) mw in
+      let%lwt r = Mwapi_lwt.call Mwapi_parse.(parse ~page sections) mw in
       begin match find_section secn_level secn_title r with
       | Some i ->
         Mwapi_lwt.call Mwapi_parse.(parse ~page ~section:i wikitext) mw
@@ -87,7 +87,7 @@ let edit ?(do_replace = false) ~page ~target subst mw =
         end
       end
     | Edit_page ->
-      try_lwt
+      try%lwt
         if do_replace then
           Lwt.return (`May, None, new_page, (fun s -> `Replace s))
         else
@@ -96,7 +96,7 @@ let edit ?(do_replace = false) ~page ~target subst mw =
       with Wiki_error {wiki_error_code = "missingtitle"} ->
         Lwt.return (`Must, None, new_page, (fun s -> `Replace s)) in
   let tmpl = Template.subst_map subst tmpl in
-  lwt token = Utils.get_edit_token ~page mw in
+  let%lwt token = Utils.get_edit_token ~page mw in
   let op = make_op (Template.to_string tmpl) in
   Utils.call_edit Mwapi_edit.(edit ~token ~page ~create ?section ~op ()) mw
 
@@ -123,7 +123,7 @@ let template_of_string s =
 let load_template_stdin () = Lwt_io.read Lwt_io.stdin >|= template_of_string
 
 let load_template_from fp =
-  lwt st = Lwt_unix.stat fp in
+  let%lwt st = Lwt_unix.stat fp in
   Lwt_io.with_file Lwt_io.input fp
     (fun ic ->
       let s = Bytes.create st.Unix.st_size in
@@ -137,7 +137,7 @@ let load_template dirs x =
     | dir :: dirs ->
       let fp = Filename.concat dir fn in
       begin
-        try_lwt load_template_from fp
+        try%lwt load_template_from fp
         with Unix.Unix_error (Unix.ENOENT, _, _) -> loop dirs
       end in
   loop dirs
@@ -223,8 +223,8 @@ let () =
     misuse "Only one mapping can be loaded from standard input.";
 
   Lwt_main.run begin
-    lwt mw = Mwapi_lwt.open_api ?cert:!opt_cert ?certkey:!opt_certkey api in
-    lwt subst =
+    let%lwt mw = Mwapi_lwt.open_api ?cert:!opt_cert ?certkey:!opt_certkey api in
+    let%lwt subst =
       Lwt_list.fold_left_s
         (fun subst ->
           function
@@ -240,7 +240,7 @@ let () =
           | `Set (x, tmpl) ->
             Lwt.return (String_map.add x (Template.subst_map subst tmpl) subst))
         String_map.empty !opt_subst in
-    try_lwt
+    try%lwt
       begin match !opt_login with
       | None -> Lwt.return_unit
       | Some (_ as name, password) -> Utils.login ~name ~password mw

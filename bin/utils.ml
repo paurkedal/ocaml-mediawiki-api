@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -26,8 +26,8 @@ let fail_f fmt = ksprintf (fun s -> Lwt.fail (Failure s)) fmt
 let log_section = Lwt_log.Section.make "mw-tools"
 
 let login ~name ~password mw =
-  match_lwt
-    match_lwt Mwapi_lwt.call (Mwapi_login.login ~name ~password ()) mw with
+  match%lwt
+    match%lwt Mwapi_lwt.call (Mwapi_login.login ~name ~password ()) mw with
     | `Need_token token ->
       Mwapi_lwt.call (Mwapi_login.login ~name ~password ~token ()) mw
     | status -> Lwt.return status
@@ -41,7 +41,7 @@ let get_edit_token ~page mw =
     match page with `Title tt -> Mwapi_query_prop.for_titles [tt]
                   | `Id id -> Mwapi_query_prop.for_pageids [id] in
   let req = Mwapi_query.only_pages (for_pages Mwapi_query_prop.intoken_edit) in
-  lwt res = Mwapi_lwt.call req mw in
+  let%lwt res = Mwapi_lwt.call req mw in
   match res.Mwapi_query.query_pages with
   | [`Present (_, _, _, token)] | [`Missing (_, _, token)] ->
     Lwt.return token
@@ -52,7 +52,7 @@ let get_edit_token ~page mw =
 
 let call_edit op mw =
   let open Mwapi_edit in
-  lwt r = Mwapi_lwt.call op mw in
+  let%lwt r = Mwapi_lwt.call op mw in
   match r.edit_change with
   | None ->
     Lwt_log.info_f ~section:log_section

@@ -103,7 +103,7 @@ let make_json_warning_buffer () =
   (warn, emit)
 
 let decode_json logger resp body =
-  lwt body_str = Cohttp_lwt_body.to_string body in
+  let%lwt body_str = Cohttp_lwt_body.to_string body in
   let warn, emit_json_warnings = make_json_warning_buffer () in
 
   match Response.status resp with
@@ -151,7 +151,7 @@ let get_json params {ctx; endpoint; cookiejar; logger} =
   let headers = Cohttp.Header.of_list [cookies_hdr] in
   log_headers logger headers >>
   Lwt_log.debug_f ~logger ~section "GETting %s." (Uri.to_string uri) >>
-  lwt resp, body = Client.get ?ctx ~headers uri in
+  let%lwt resp, body = Client.get ?ctx ~headers uri in
   Mwapi_cookiejar.extract endpoint (Cohttp.Response.headers resp) cookiejar;
   decode_json logger resp body
 
@@ -166,7 +166,7 @@ let post_json params {ctx; endpoint; cookiejar; logger} =
   log_headers logger headers >>
   Lwt_log.debug_f ~logger ~section "POSTing to %s: %s"
                   (Uri.to_string endpoint) postdata >>
-  lwt resp, body = Client.post ?ctx ~headers ~body endpoint in
+  let%lwt resp, body = Client.post ?ctx ~headers ~body endpoint in
   Mwapi_cookiejar.extract endpoint (Cohttp.Response.headers resp) cookiejar;
   decode_json logger resp body
 

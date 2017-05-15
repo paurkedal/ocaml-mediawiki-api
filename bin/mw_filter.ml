@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -84,7 +84,7 @@ let filter_text ~fc text =
       Lwt_stream.iter_s (Lwt_io.eprintlf "<stderr> %s")
                         (Lwt_io.read_lines process#stderr) in
     Lwt.join [writer; reader; logger] >>
-    match_lwt process#status with
+    match%lwt process#status with
     | Unix.WEXITED ec ->
       begin match
         try Int_map.find ec (fst fc.fc_actions)
@@ -99,12 +99,12 @@ let filter_text ~fc text =
   end
 
 let filter_page ~fc ~page mw =
-  lwt text = Mwapi_lwt.call Mwapi_parse.(parse ~page wikitext) mw in
-  match_lwt filter_text ~fc text with
+  let%lwt text = Mwapi_lwt.call Mwapi_parse.(parse ~page wikitext) mw in
+  match%lwt filter_text ~fc text with
   | `Skip -> Lwt_log.info "Skipping due to exit code."
   | `Replace text' when text' = text -> Lwt_log.info "No changes to write back."
   | `Replace text' as op ->
-    lwt token = Utils.get_edit_token ~page mw in
+    let%lwt token = Utils.get_edit_token ~page mw in
     Utils.call_edit
       Mwapi_edit.(edit ~token ~page ~create:`May_not ~recreate:`May_not ~op ())
       mw
@@ -119,7 +119,7 @@ let main api login page_title actions cmd =
       fc_actions = actions;
     } in
     Lwt_main.run begin
-      lwt mw = Mwapi_lwt.open_api api in
+      let%lwt mw = Mwapi_lwt.open_api api in
       begin match login with
       | None -> Lwt.return_unit
       | Some (_ as name, password) -> Utils.login ~name ~password mw
