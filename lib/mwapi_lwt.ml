@@ -46,27 +46,29 @@ let rec mkdir_rec dir =
 let open_api ?cert ?certkey ?(logger = !Lwt_log.default) endpoint =
   (match Uri.scheme endpoint with Some "https" -> Ssl.init () | _ -> ());
   let make_context cert certkey =
-    (* FIXME: Cohttp no longer supports the context from the ssl library,
-     * waiting for client cert auth support in conduit. *)
-    failwith "X509 authentication is unsupported in this version." in
+    (* FIXME: TLS client authentication is not cleanly supported in Conduit yet,
+     * but this works when using OpenSSL: *)
+    Ssl.use_certificate Conduit_lwt_unix_ssl.Client.default_ctx cert certkey;
+    None
+  in
   let ctx =
-    match cert, certkey with
-    | None, None -> None
-    | None, Some cert | Some cert, None -> Some (make_context cert cert)
-    | Some cert, Some certkey -> Some (make_context cert certkey) in
-  begin match Uri.host endpoint with
-  | None -> Lwt.fail (Failure "Missing domain on MWAPI URL.")
-  | Some domain ->
-    let cookiejar = Mwapi_cookiejar.create () in
-    let origin = Mwapi_cookiejar.uri_origin endpoint in
-    let fp = Mwapi_cookiejar.persistence_path ~origin () in
-    Lwt.catch
-      (fun () ->
-        Lwt_io.with_file Lwt_io.input fp
-          (fun ic -> Cookiejar_io.read ~origin ic cookiejar))
-      (function _ -> Lwt.return_unit) >>
-    Lwt.return {ctx; endpoint; cookiejar; logger}
-  end
+    (match cert, certkey with
+     | None, None -> None
+     | None, Some cert | Some cert, None -> make_context cert cert
+     | Some cert, Some certkey -> make_context cert certkey)
+  in
+  (match Uri.host endpoint with
+   | None -> Lwt.fail (Failure "Missing domain on MWAPI URL.")
+   | Some domain ->
+      let cookiejar = Mwapi_cookiejar.create () in
+      let origin = Mwapi_cookiejar.uri_origin endpoint in
+      let fp = Mwapi_cookiejar.persistence_path ~origin () in
+      Lwt.catch
+        (fun () ->
+          Lwt_io.with_file Lwt_io.input fp
+            (fun ic -> Cookiejar_io.read ~origin ic cookiejar))
+        (function _ -> Lwt.return_unit) >>
+      Lwt.return {ctx; endpoint; cookiejar; logger})
 
 let close_api {endpoint; cookiejar} =
   match Uri.host endpoint with
