@@ -21,6 +21,3 @@ The package is available though the [author's OPAM repository][1]:
 
     opam repo add paurkedal https://github.com/paurkedal/opam-repo-paurkedal.git
     opam install mediawiki-api
-
-It can also be installed from the GitHub-generated tarballs provided OASIS
-and the other dependencies are in place; see the `_oasis` project file.

@@ -3,6 +3,7 @@ version = "%%VERSION_NUM%%"
 requires = "
   calendar,
   cmdliner,
+  conduit, conduit.lwt, conduit.lwt-unix,
   cohttp, cohttp.lwt,
   kojson,
   lwt,

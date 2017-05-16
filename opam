@@ -12,6 +12,7 @@ depends: [
   "calendar"
   "cmdliner"
   "cohttp"
+  "conduit"
   "kojson"
   "lwt"
   "ocamlbuild" {build}

@@ -1,5 +1,5 @@
 # Change Log
 
-## Unreleased
+## 0.5.4 - 2017-05-16
 
-- Added change log.
+- Re-add support for TLS client authentication when using OpenSSL.
