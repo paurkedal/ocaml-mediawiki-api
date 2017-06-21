@@ -1,0 +1,26 @@
+(jbuild_version 1)
+
+(library
+ ((name common)
+  (wrapped false)
+  (modules (Template Utils))
+  (flags (-ppx ppx_lwt))
+  (libraries (mediawiki_api pcre))))
+
+(executable
+ ((name mw_edit)
+  (modules (Mw_edit))
+  (flags (-ppx ppx_lwt))
+  (libraries (cmdliner common mediawiki_api pcre))))
+
+(executable
+ ((name mw_filter)
+  (modules (Mw_filter))
+  (flags (-ppx ppx_lwt))
+  (libraries (cmdliner common mediawiki_api))))
+
+(install
+ ((section bin)
+  (files
+   ((mw_edit.exe as mw-edit)
+    (mw_filter.exe as mw-filter)))))

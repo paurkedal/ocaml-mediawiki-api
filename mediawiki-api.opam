@@ -7,20 +7,22 @@ bug-reports: "https://github.com/paurkedal/ocaml-mediawiki-api/issues"
 dev-repo: "https://github.com/paurkedal/ocaml-mediawiki-api.git"
 license: "LGPL-3 with OCaml linking exception"
 
-build: ["ocaml" "pkg/pkg.ml" "build" "--pinned" "%{pinned}%"]
+build: [["jbuilder" "build" "-p" name "-j" jobs]]
+
 depends: [
   "calendar"
   "cmdliner"
   "cohttp"
   "conduit"
+  "jbuilder" {build}
   "kojson"
   "lwt"
   "ocaml-xdg-basedir"
-  "ocamlbuild" {build}
   "pcre"
   "prime"
   "ppx_compose" {build}
   "ssl"
   "topkg" {build}
+  "topkg-jbuilder" {build}
   "yojson"
 ]
