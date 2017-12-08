@@ -24,7 +24,7 @@ open Unprime_option
 
 let section = Lwt_log.Section.make "mwapi"
 
-module Cookiejar_io = Mwapi_cookiejar.Make (Cohttp_lwt_unix_io)
+module Cookiejar_io = Mwapi_cookiejar.Make (Cohttp_lwt_unix.IO)
 
 type client = {
   ctx : Cohttp_lwt_unix.Client.ctx option;
@@ -48,6 +48,7 @@ let open_api ?cert ?certkey ?(logger = !Lwt_log.default) endpoint =
   let make_context cert certkey =
     (* FIXME: TLS client authentication is not cleanly supported in Conduit yet,
      * but this works when using OpenSSL: *)
+    Conduit_lwt_unix.(tls_library := OpenSSL);
     Ssl.use_certificate Conduit_lwt_unix_ssl.Client.default_ctx cert certkey;
     None
   in
@@ -103,7 +104,7 @@ let make_json_warning_buffer () =
   (warn, emit)
 
 let decode_json logger resp body =
-  let%lwt body_str = Cohttp_lwt_body.to_string body in
+  let%lwt body_str = Cohttp_lwt.Body.to_string body in
   let warn, emit_json_warnings = make_json_warning_buffer () in
 
   match Response.status resp with
@@ -159,7 +160,7 @@ let post_json params {ctx; endpoint; cookiejar; logger} =
   let params = ("format", "json") :: params in
   let params = List.map (fun (k, v) -> (k, [v])) params in
   let postdata = Uri.encoded_of_query params in
-  let body = Cohttp_lwt_body.of_string postdata in
+  let body = Cohttp_lwt.Body.of_string postdata in
   let cookies_hdr = Mwapi_cookiejar.header endpoint cookiejar in
   let headers = Cohttp.Header.of_list
         ["Content-Type", "application/x-www-form-urlencoded"; cookies_hdr] in

@@ -13,15 +13,17 @@ depends: [
   "calendar"
   "cmdliner"
   "cohttp"
+  "cohttp-lwt-unix"
   "conduit"
+  "conduit-lwt-unix"
   "jbuilder" {build}
   "kojson"
   "lwt"
+  "lwt_ssl"
   "ocaml-xdg-basedir"
   "pcre"
   "prime"
   "ppx_compose" {build}
-  "ssl"
   "topkg" {build}
   "topkg-jbuilder" {build}
   "yojson"

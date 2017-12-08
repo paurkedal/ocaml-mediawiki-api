@@ -22,7 +22,7 @@
   (libraries
    (calendar
     cohttp cohttp.lwt
-    conduit conduit.lwt conduit.lwt-unix
+    conduit conduit-lwt conduit-lwt-unix
     kojson
     ppx_compose
     prime
