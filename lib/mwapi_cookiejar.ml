@@ -15,7 +15,8 @@
  *)
 
 open Cohttp.Cookie
-open Mwapi_utils
+open Mwapi_common
+open Mwapi_prereq
 open Printf
 open Unprime
 open Unprime_char

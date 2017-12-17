@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,15 +14,18 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Mwapi_common
+type 'a ident = 'a
 
-type frag =
-  | Text of string
-  | Stencil of string * string option
-and t = frag list
+module String_map : Prime_map.S with type key = string
+module String_set : Set.S with type elt = string
 
-val subst : (string -> t option) -> t -> t
-val subst_map : t String_map.t -> t -> t
+module Qparams : sig
+  type t = String_set.t String_map.t
 
-val of_string : string -> t
-val to_string : t -> string
+  val empty : t
+  val singleton : string -> string -> t
+  val add : string -> string -> t -> t
+  val of_list : (string * string) list -> t
+  val to_params : t -> (string * string) list
+  val merge : t -> t -> t
+end

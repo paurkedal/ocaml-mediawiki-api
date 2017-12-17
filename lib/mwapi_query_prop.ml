@@ -15,8 +15,9 @@
  *)
 
 open Kojson_pattern
+open Mwapi_common
+open Mwapi_prereq
 open Mwapi_query
-open Mwapi_utils
 open Unprime_list
 
 type ('a, 'am, 'k) prop = {

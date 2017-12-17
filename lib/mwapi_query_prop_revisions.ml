@@ -15,7 +15,8 @@
  *)
 
 open Kojson_pattern
-open Mwapi_utils
+open Mwapi_common
+open Mwapi_prereq
 open Unprime
 open Unprime_option
 

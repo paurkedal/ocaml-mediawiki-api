@@ -16,7 +16,7 @@
 
 open Lwt.Infix
 open Mwapi
-open Mwapi_utils
+open Mwapi_common
 open Printf
 open Unprime_list
 open Unprime_option

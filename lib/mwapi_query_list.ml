@@ -14,8 +14,9 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Mwapi_common
+open Mwapi_prereq
 open Mwapi_query
-open Mwapi_utils
 open Unprime
 open Unprime_option
 

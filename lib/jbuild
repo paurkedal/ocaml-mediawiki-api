@@ -6,9 +6,9 @@
   (wrapped false)
   (modules
    (Mwapi
+    Mwapi_common
     Mwapi_cookiejar
     Mwapi_lwt
-    Mwapi_utils
     Mwapi_createaccount
     Mwapi_edit
     Mwapi_login
@@ -16,7 +16,9 @@
     Mwapi_query
     Mwapi_query_list
     Mwapi_query_prop
-    Mwapi_query_prop_revisions))
+    Mwapi_query_prop_revisions
+    ;; internal
+    Mwapi_prereq))
   (preprocess (pps (ppx_compose lwt.ppx)))
   (libraries
    (calendar

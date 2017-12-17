@@ -16,7 +16,7 @@
 
 open Kojson_pattern
 open Mwapi
-open Mwapi_utils
+open Mwapi_prereq
 open Unprime
 
 type 'a prop = {
