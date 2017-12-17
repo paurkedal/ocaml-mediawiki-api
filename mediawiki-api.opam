@@ -24,7 +24,5 @@ depends: [
   "pcre"
   "prime"
   "ppx_compose" {build}
-  "topkg" {build}
-  "topkg-jbuilder" {build}
   "yojson"
 ]
