@@ -23,6 +23,7 @@ open Unprime_char
 open Unprime_list
 open Unprime_option
 open Unprime_string
+module Sexp = Sexplib.Sexp
 
 (* Helpers *)
 
@@ -180,31 +181,49 @@ end
 module Make (IO : Cohttp.S.IO) = struct
 
   module IO = IO
+  let (>>=) = IO.(>>=)
+  let (>|=) m f = m >>= fun x -> IO.return (f x)
+
+  let rec write_lines oc = function
+   | [] -> IO.return ()
+   | line :: lines ->
+      IO.write oc (line ^ "\n") >>= fun () ->
+      write_lines oc lines
+
+  let read_lines ic =
+    let rec loop acc =
+      IO.read_line ic >>=
+      (function
+       | None -> IO.return acc
+       | Some line -> loop (line :: acc)) in
+    loop []
+
+  (* Should store time and check Max_age here, but MW probably only use session
+   * cookies for the API.  To do this right, customize the cookie type above to
+   * include absolute time of expiration or creation, and maybe remove some
+   * redundant fields. *)
 
   let write ~origin oc by_origin =
-    let open IO in
-    fold ~origin
-      (fun c acc ->
-        acc >>= fun () ->
-        write oc (snd (Set_cookie_hdr.serialize c)) >>= fun () ->
-        write oc "\n")
-      by_origin (return ())
+    let aux sch =
+      (match sch.Set_cookie_hdr.expiration with
+       | `Session -> ident
+       | `Max_age _t ->
+          List.cons (Sexp.to_string (Set_cookie_hdr.sexp_of_t sch))) in
+    write_lines oc (fold ~origin aux by_origin [])
 
   let read ~origin ic by_origin =
+    read_lines ic >|= fun lines ->
     let by_path = tread_origin origin by_origin in
-    let open IO in
-    let rec loop acc =
-      read_line ic >>= function
-      | Some line -> loop (("set-cookie", line) :: acc)
-      | None -> return acc in
-    loop [] >>= fun hdrlines ->
-    List.iter
-      (fun (name, cookie) ->
-        let path = Option.get_or "/" (Set_cookie_hdr.path cookie) in
-        let scope = tread_path path by_path in
-        scope.cookies <- String_map.add name cookie scope.cookies)
-      (Set_cookie_hdr.extract (Cohttp.Header.of_list hdrlines));
-    return ()
+    let aux line =
+      let sch = Set_cookie_hdr.t_of_sexp (Sexp.of_string line) in
+      (match sch.Set_cookie_hdr.expiration with
+       | `Session -> ()
+       | `Max_age _t ->
+          let name = fst (Set_cookie_hdr.cookie sch) in
+          let path = Option.get_or "/" (Set_cookie_hdr.path sch) in
+          let scope = tread_path path by_path in
+          scope.cookies <- String_map.add name sch scope.cookies) in
+    List.iter aux lines
 
 end
 

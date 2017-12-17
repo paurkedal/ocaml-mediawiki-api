@@ -64,7 +64,7 @@ let open_api ?cert ?certkey ?(logger = !Lwt_log.default) endpoint =
     (fun () ->
       Lwt_io.with_file ~mode:Lwt_io.input fp
         (fun ic -> Cookiejar_io.read ~origin ic cookiejar))
-    (function _ -> Lwt.return_unit) >>
+    (function _ -> Lwt_log.warning ~section "Contaminated cookie jar.") >>
   Lwt.return {ctx; endpoint; cookiejar; logger}
 
 let close_api {endpoint; cookiejar; _} =
