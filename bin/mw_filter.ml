@@ -104,7 +104,7 @@ let filter_page ~fc ~page mw =
   | `Skip -> Lwt_log.info "Skipping due to exit code."
   | `Replace text' when text' = text -> Lwt_log.info "No changes to write back."
   | `Replace _ as op ->
-    let%lwt token = Utils.get_edit_token ~page mw in
+    let%lwt token = Utils.get_edit_token mw in
     Utils.call_edit
       Mwapi_edit.(edit ~token ~page ~create:`May_not ~recreate:`May_not ~op ())
       mw

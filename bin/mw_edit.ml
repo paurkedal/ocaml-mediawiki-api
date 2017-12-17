@@ -96,7 +96,7 @@ let edit ?(do_replace = false) ~page ~target subst mw =
       with Wiki_error {wiki_error_code = "missingtitle"; _} ->
         Lwt.return (`Must, None, new_page, (fun s -> `Replace s)) in
   let tmpl = Template.subst_map subst tmpl in
-  let%lwt token = Utils.get_edit_token ~page mw in
+  let%lwt token = Utils.get_edit_token mw in
   let op = make_op (Template.to_string tmpl) in
   Utils.call_edit Mwapi_edit.(edit ~token ~page ~create ?section ~op ()) mw
 

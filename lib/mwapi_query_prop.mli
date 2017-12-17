@@ -73,11 +73,20 @@ val inprop_url : (urls, unit) nprop
 (** {3 intoken} *)
 
 val intoken_edit : (string, string) nprop
+  [@@deprecated "Use Mwapi_query_meta.tokens."]
 val intoken_delete : (string, unit) nprop
+  [@@deprecated "Use Mwapi_query_meta.tokens."]
 val intoken_protect : (string, unit) nprop
+  [@@deprecated "Use Mwapi_query_meta.tokens."]
 val intoken_move : (string, unit) nprop
+  [@@deprecated "Use Mwapi_query_meta.tokens."]
 val intoken_block : (string, unit) nprop
+  [@@deprecated "Use Mwapi_query_meta.tokens."]
 val intoken_unblock : (string, unit) nprop
+  [@@deprecated "Use Mwapi_query_meta.tokens."]
 val intoken_email : (string, unit) nprop
+  [@@deprecated "Use Mwapi_query_meta.tokens."]
 val intoken_import : (string, unit) nprop
+  [@@deprecated "Use Mwapi_query_meta.tokens."]
 val intoken_watch : (string, unit) nprop
+  [@@deprecated "Use Mwapi_query_meta.tokens."]

@@ -49,3 +49,17 @@ module Qparams = struct
         | Some xs, Some ys -> Some (String_set.union xs ys)
         | None, None -> None)
 end
+
+module Nlist = struct
+  type (_, _) t =
+    | [] : ('a, [`Z]) t
+    | (::) : 'a * ('a, 'n) t -> ('a, [`S of 'n]) t
+
+  let rec map : type a b n. (a -> b) -> (a, n) t -> (b, n) t = fun f -> function
+   | [] -> []
+   | x :: xs -> f x :: map f xs
+
+  let rec to_list : type a n. (a, n) t -> a list = function
+   | [] -> ([] : _ list)
+   | x :: xs -> ((x :: to_list xs) : _ list)
+end

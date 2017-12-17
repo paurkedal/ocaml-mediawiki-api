@@ -15,7 +15,7 @@
  *)
 
 open Printf
-open Unprime_list
+open Mwapi_common
 
 let fail_f fmt = ksprintf (fun s -> Lwt.fail (Failure s)) fmt
 
@@ -32,19 +32,11 @@ let login ~name ~password mw =
   | status ->
     fail_f "Login failed: %s" (Mwapi_login.string_of_login_status status)
 
-let get_edit_token ~page mw =
-  let for_pages =
-    match page with `Title tt -> Mwapi_query_prop.for_titles [tt]
-                  | `Id id -> Mwapi_query_prop.for_pageids [id] in
-  let req = Mwapi_query.only_pages (for_pages Mwapi_query_prop.intoken_edit) in
+let get_edit_token mw =
+  let req = Mwapi_query.only_meta (Mwapi_query_meta.tokens Nlist.[`Csrf]) in
   let%lwt res = Mwapi_lwt.call req mw in
-  match res.Mwapi_query.query_pages with
-  | [`Present (_, _, _, token)] | [`Missing (_, _, token)] ->
-    Lwt.return token
-  | [`Invalid title] ->
-    fail_f "Unexpected invalid-response to edit-token request for \"%s\"." title
-  | rs ->
-    fail_f "Expected single edit-token response, got %d." (List.length rs)
+  (match res.Mwapi_query.query_meta with
+   | Nlist.[token] -> Lwt.return token)
 
 let call_edit op mw =
   let open Mwapi_edit in

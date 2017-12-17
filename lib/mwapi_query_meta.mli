@@ -14,27 +14,18 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-type 'a ident = 'a
+(** Meta queries ([action=query&meta=*]). *)
 
-module String_map : Prime_map.S with type key = string
-module String_set : Set.S with type elt = string
+open Mwapi_common
+open Mwapi_query
 
-module Qparams : sig
-  type t = String_set.t String_map.t
+type token_type =
+  [ `Csrf
+  | `Watch
+  | `Patrol
+  | `Rollback
+  | `Userrights
+  | `Login
+  | `Createaccount ]
 
-  val empty : t
-  val singleton : string -> string -> t
-  val add : string -> string -> t -> t
-  val of_list : (string * string) list -> t
-  val to_params : t -> (string * string) list
-  val merge : t -> t -> t
-end
-
-module Nlist : sig
-  type (_, _) t =
-    | [] : ('a, [`Z]) t
-    | (::) : 'a * ('a, 'n) t -> ('a, [`S of 'n]) t
-
-  val map : ('a -> 'b) -> ('a, 'n) t -> ('b, 'n) t
-  val to_list : ('a, 'n) t -> 'a list
-end
+val tokens : ([< token_type], 'n) Nlist.t -> (string, 'n) Nlist.t meta_query

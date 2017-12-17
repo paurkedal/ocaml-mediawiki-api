@@ -14,6 +14,7 @@
     Mwapi_login
     Mwapi_parse
     Mwapi_query
+    Mwapi_query_meta
     Mwapi_query_list
     Mwapi_query_prop
     Mwapi_query_prop_revisions
