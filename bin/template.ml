@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -27,12 +27,11 @@ and t = frag list
 let subst f =
   List.flatten_map
     (function
-      | Text text as frag -> [frag]
-      | Stencil (x, text_opt) as frag ->
-        begin match f x with
-        | None -> [frag]
-        | Some templ -> templ
-        end)
+     | Text _ as frag -> [frag]
+     | Stencil (x, _) as frag ->
+        (match f x with
+         | None -> [frag]
+         | Some templ -> templ))
 
 let subst_map m =
   subst (fun x -> try Some (String_map.find x m) with Not_found -> None)

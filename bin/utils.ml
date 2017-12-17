@@ -16,7 +16,6 @@
 
 open Printf
 open Unprime_list
-open Unprime_option
 
 let fail_f fmt = ksprintf (fun s -> Lwt.fail (Failure s)) fmt
 

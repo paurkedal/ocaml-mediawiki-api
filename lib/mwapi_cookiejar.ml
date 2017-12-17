@@ -150,7 +150,7 @@ let header uri by_origin =
 let fold ?origin f by_origin =
   let fold_by_path =
     Hashtbl.fold
-      (fun _ {cookies} -> String_map.fold (fun _ cookie -> f cookie) cookies) in
+      (fun _ cj -> String_map.fold (fun _ cookie -> f cookie) cj.cookies) in
   match origin with
   | None ->
     Hashtbl.fold (fun _ -> fold_by_path) by_origin
@@ -161,7 +161,7 @@ let fold ?origin f by_origin =
 let iter ?origin f by_origin =
   let iter_by_path =
     Hashtbl.iter
-      (fun _ {cookies} -> String_map.iter (fun _ cookie -> f cookie) cookies) in
+      (fun _ cj -> String_map.iter (fun _ cookie -> f cookie) cj.cookies) in
   match origin with
   | None ->
     Hashtbl.iter (fun _ -> iter_by_path) by_origin

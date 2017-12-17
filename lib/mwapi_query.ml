@@ -17,8 +17,6 @@
 open Kojson_pattern
 open Mwapi
 open Mwapi_utils
-open Unprime
-open Unprime_list
 open Unprime_option
 
 (* The continue field may contain a mixture of at least strings and integers,

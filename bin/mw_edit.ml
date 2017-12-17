@@ -18,7 +18,6 @@ open Lwt.Infix
 open Mwapi
 open Mwapi_utils
 open Printf
-open Unprime
 open Unprime_list
 open Unprime_option
 open Unprime_string
@@ -36,7 +35,7 @@ type edit_target =
 let find_section level tt =
   let open Mwapi_parse in
   List.search
-    begin fun {section_level; section_line; section_index} ->
+    begin fun {section_level; section_line; section_index; _} ->
       if section_line <> tt || section_level <> level then None
       else Some (int_of_string section_index)
     end
@@ -94,7 +93,7 @@ let edit ?(do_replace = false) ~page ~target subst mw =
         else
           Mwapi_lwt.call Mwapi_parse.(parse ~page wikitext) mw >|= fun s ->
           (`May_not, None, Template.of_string s, (fun s -> `Replace s))
-      with Wiki_error {wiki_error_code = "missingtitle"} ->
+      with Wiki_error {wiki_error_code = "missingtitle"; _} ->
         Lwt.return (`Must, None, new_page, (fun s -> `Replace s)) in
   let tmpl = Template.subst_map subst tmpl in
   let%lwt token = Utils.get_edit_token ~page mw in
@@ -125,7 +124,7 @@ let load_template_stdin () = Lwt_io.read Lwt_io.stdin >|= template_of_string
 
 let load_template_from fp =
   let%lwt st = Lwt_unix.stat fp in
-  Lwt_io.with_file Lwt_io.input fp
+  Lwt_io.with_file ~mode:Lwt_io.input fp
     (fun ic ->
       let s = Bytes.create st.Unix.st_size in
       Lwt_io.read_into_exactly ic s 0 st.Unix.st_size >>
@@ -249,8 +248,8 @@ let () =
       edit ~do_replace:!opt_replace ~page:(`Title page) ~target subst mw >>
       Mwapi_lwt.close_api mw
     with
-    | Wiki_error {wiki_error_code; wiki_error_info} ->
+    | Wiki_error {wiki_error_code; wiki_error_info; _} ->
       Lwt_log.error_f "%s - %s" wiki_error_code wiki_error_info
-    | Http_error {http_error_code; http_error_info} ->
+    | Http_error {http_error_code; http_error_info; _} ->
       Lwt_log.error_f "HTTP %d - %s" http_error_code http_error_info
   end

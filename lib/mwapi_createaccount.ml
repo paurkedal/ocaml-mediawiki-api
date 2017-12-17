@@ -24,7 +24,7 @@ let decode_result = function
   | `String "needtoken" -> `Needtoken
   | `String "success" -> `Success
   | `String "warning" -> `Warning
-  | res -> failwith "Unrecognized result from createacconut."
+  | _ -> failwith "Unrecognized result from createacconut."
 
 let request_decode =
   "createaccount"^:

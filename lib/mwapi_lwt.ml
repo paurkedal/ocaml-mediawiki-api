@@ -18,7 +18,6 @@ open Cohttp_lwt_unix
 open Kojson_pattern
 open Lwt.Infix
 open Mwapi
-open Printf
 open Unprime
 open Unprime_option
 

@@ -17,9 +17,7 @@
 open Kojson_pattern
 open Mwapi_query
 open Mwapi_utils
-open Unprime
 open Unprime_list
-open Unprime_option
 
 type ('a, 'am, 'k) prop = {
   prop_params : Qparams.t;
@@ -154,12 +152,12 @@ let inprop_url =
   { prop_params = Qparams.of_list ["prop", "info"; "inprop", "url"];
     prop_decode; prop_decode_missing = pair () }
 
-let make_intoken ?(on_missing = false) which =
+let make_intoken which =
   let prop_params = Qparams.of_list ["prop", "info"; "intoken", which] in
   let prop_decode = (which ^ "token")^: K.string %> pair in
   {prop_params; prop_decode; prop_decode_missing = pair ()}
 
-let make_intoken_missing ?(on_missing = false) which =
+let make_intoken_missing which =
   let prop_params = Qparams.of_list ["prop", "info"; "intoken", which] in
   let prop_decode = (which ^ "token")^: K.string %> pair in
   {prop_params; prop_decode; prop_decode_missing = prop_decode}

@@ -16,7 +16,6 @@
 
 open Cmdliner
 open Lwt.Infix
-open Printf
 open Unprime_list
 open Unprime_string
 open Utils
@@ -33,7 +32,7 @@ let up_parser s =
   match String.cut_affix ":" s with
   | None -> `Error "Expecting <user>:<pass>."
   | Some up -> `Ok up
-let up_printer fmtr (u, p) = Format.pp_print_string fmtr (u ^ ":********")
+let up_printer fmtr (u, _) = Format.pp_print_string fmtr (u ^ ":********")
 let up_conv = up_parser, up_printer
 
 type filter_action = [`Commit | `Skip | `Fail]
@@ -104,7 +103,7 @@ let filter_page ~fc ~page mw =
   match%lwt filter_text ~fc text with
   | `Skip -> Lwt_log.info "Skipping due to exit code."
   | `Replace text' when text' = text -> Lwt_log.info "No changes to write back."
-  | `Replace text' as op ->
+  | `Replace _ as op ->
     let%lwt token = Utils.get_edit_token ~page mw in
     Utils.call_edit
       Mwapi_edit.(edit ~token ~page ~create:`May_not ~recreate:`May_not ~op ())

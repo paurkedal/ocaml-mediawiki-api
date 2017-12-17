@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -69,7 +69,7 @@ module Qparams = struct
 
   let merge =
     String_map.merge
-      (fun k xs ys ->
+      (fun _ xs ys ->
         match xs, ys with
         | Some xs, None -> Some xs
         | None, Some ys -> Some ys
