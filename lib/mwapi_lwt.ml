@@ -58,29 +58,23 @@ let open_api ?cert ?certkey ?(logger = !Lwt_log.default) endpoint =
      | None, Some cert | Some cert, None -> make_context cert cert
      | Some cert, Some certkey -> make_context cert certkey)
   in
-  (match Uri.host endpoint with
-   | None -> Lwt.fail (Failure "Missing domain on MWAPI URL.")
-   | Some domain ->
-      let cookiejar = Mwapi_cookiejar.create () in
-      let origin = Mwapi_cookiejar.uri_origin endpoint in
-      let fp = Mwapi_cookiejar.persistence_path ~origin () in
-      Lwt.catch
-        (fun () ->
-          Lwt_io.with_file Lwt_io.input fp
-            (fun ic -> Cookiejar_io.read ~origin ic cookiejar))
-        (function _ -> Lwt.return_unit) >>
-      Lwt.return {ctx; endpoint; cookiejar; logger})
+  let%lwt origin = Lwt.wrap1 Mwapi_cookiejar.uri_origin endpoint in
+  let cookiejar = Mwapi_cookiejar.create () in
+  let fp = Mwapi_cookiejar.persistence_path ~origin () in
+  Lwt.catch
+    (fun () ->
+      Lwt_io.with_file ~mode:Lwt_io.input fp
+        (fun ic -> Cookiejar_io.read ~origin ic cookiejar))
+    (function _ -> Lwt.return_unit) >>
+  Lwt.return {ctx; endpoint; cookiejar; logger}
 
-let close_api {endpoint; cookiejar} =
-  match Uri.host endpoint with
-  | None -> Lwt.return_unit
-  | Some domain ->
-    (* TODO: Expire cookies *)
-    let origin = Mwapi_cookiejar.uri_origin endpoint in
-    let fp = Mwapi_cookiejar.persistence_path ~origin () in
-    mkdir_rec (Filename.dirname fp) >>
-    Lwt_io.with_file Lwt_io.output fp
-      (fun oc -> Cookiejar_io.write ~origin oc cookiejar)
+let close_api {endpoint; cookiejar; _} =
+  (* TODO: Expire cookies *)
+  let%lwt origin = Lwt.wrap1 Mwapi_cookiejar.uri_origin endpoint in
+  let fp = Mwapi_cookiejar.persistence_path ~origin () in
+  mkdir_rec (Filename.dirname fp) >>
+  Lwt_io.with_file ~mode:Lwt_io.output fp
+    (fun oc -> Cookiejar_io.write ~origin oc cookiejar)
 
 let decode_star =
   K.assoc begin

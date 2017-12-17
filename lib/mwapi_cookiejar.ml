@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -37,16 +37,19 @@ let is_subpath pfx path =
             && (n = String.length path || path.[n - 1] = '/' || path.[n] = '/')
 
 let uri_origin uri =
+  let host =
+    (match Uri.host uri with
+     | Some host -> host
+     | None -> failwith "The host part of the URL is required.") in
   let port =
-    match Uri.port uri with
-    | Some port -> port
-    | None ->
-      begin match Uri.scheme uri with
-      | Some "http" -> 80
-      | Some "https" -> 443
-      | _ -> failwith "Unimplemented protocol for storing cookies."
-      end in
-  (Uri.host_with_default uri, port)
+    (match Uri.port uri with
+     | Some port -> port
+     | None ->
+        (match Uri.scheme uri with
+         | Some "http" -> 80
+         | Some "https" -> 443
+         | _ -> failwith "Unimplemented protocol for storing cookies.")) in
+  (host, port)
 
 type uri_info = {
   uri_origin : string * int;
