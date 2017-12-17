@@ -109,7 +109,7 @@ let filter_page ~fc ~page mw =
       Mwapi_edit.(edit ~token ~page ~create:`May_not ~recreate:`May_not ~op ())
       mw
 
-let main api login page_title actions cmd =
+let main api login page_title actions cmd persist_cookies =
   let page = `Title page_title in
   match cmd with
   | [] -> exit 0
@@ -119,13 +119,13 @@ let main api login page_title actions cmd =
       fc_actions = actions;
     } in
     Lwt_main.run begin
-      let%lwt mw = Mwapi_lwt.open_api api in
+      let%lwt mw = Mwapi_lwt.open_api ~load_cookies:persist_cookies api in
       begin match login with
       | None -> Lwt.return_unit
       | Some (_ as name, password) -> Utils.login ~name ~password mw
       end >>
       filter_page ~fc ~page mw >>
-      Mwapi_lwt.close_api mw
+      Mwapi_lwt.close_api ~save_cookies:persist_cookies mw
     end
 
 let () =
@@ -154,8 +154,11 @@ let () =
               ["actions"]) in
   let cmd_t =
     Arg.(value & pos_all string [] & info ~docv:"COMMAND" []) in
+  let persist_cookies_t =
+    let doc = "Load and save non-session cookies." in
+    Arg.(value & flag & info ~doc ["persistent-cookies"]) in
   let main_t = Term.(pure main $ api_t $ login_t $ page_title_t $
-                     actions_t $ cmd_t) in
+                     actions_t $ cmd_t $ persist_cookies_t) in
   let doc = "filter a wiki page though a command and write it back" in
   let man = [
     `S "DESCRIPTION";

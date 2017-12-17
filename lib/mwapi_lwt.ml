@@ -42,7 +42,8 @@ let rec mkdir_rec dir =
         Lwt_unix.mkdir dir 0o755
       | xc -> Lwt.fail xc)
 
-let open_api ?cert ?certkey ?(logger = !Lwt_log.default) endpoint =
+let open_api ?cert ?certkey ?(logger = !Lwt_log.default) ?(load_cookies = false)
+             endpoint =
   (match Uri.scheme endpoint with Some "https" -> Ssl.init () | _ -> ());
   let make_context cert certkey =
     (* FIXME: TLS client authentication is not cleanly supported in Conduit yet,
@@ -60,20 +61,26 @@ let open_api ?cert ?certkey ?(logger = !Lwt_log.default) endpoint =
   let%lwt origin = Lwt.wrap1 Mwapi_cookiejar.uri_origin endpoint in
   let cookiejar = Mwapi_cookiejar.create () in
   let fp = Mwapi_cookiejar.persistence_path ~origin () in
-  Lwt.catch
-    (fun () ->
-      Lwt_io.with_file ~mode:Lwt_io.input fp
-        (fun ic -> Cookiejar_io.read ~origin ic cookiejar))
-    (function _ -> Lwt_log.warning ~section "Contaminated cookie jar.") >>
+  begin
+    if not load_cookies then Lwt.return_unit else
+    Lwt.catch
+      (fun () ->
+        Lwt_io.with_file ~mode:Lwt_io.input fp
+          (fun ic -> Cookiejar_io.read ~origin ic cookiejar))
+      (function _ -> Lwt_log.warning ~section "Contaminated cookie jar.")
+  end >>
   Lwt.return {ctx; endpoint; cookiejar; logger}
 
-let close_api {endpoint; cookiejar; _} =
+let close_api ?(save_cookies = false) {endpoint; cookiejar; _} =
   (* TODO: Expire cookies *)
   let%lwt origin = Lwt.wrap1 Mwapi_cookiejar.uri_origin endpoint in
   let fp = Mwapi_cookiejar.persistence_path ~origin () in
   mkdir_rec (Filename.dirname fp) >>
-  Lwt_io.with_file ~mode:Lwt_io.output fp
-    (fun oc -> Cookiejar_io.write ~origin oc cookiejar)
+  begin
+    if not save_cookies then Lwt.return_unit else
+    Lwt_io.with_file ~mode:Lwt_io.output fp
+      (fun oc -> Cookiejar_io.write ~origin oc cookiejar)
+  end
 
 let decode_star =
   K.assoc begin

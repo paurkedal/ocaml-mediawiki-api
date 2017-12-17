@@ -159,6 +159,7 @@ let () =
   let opt_ipts = ref [] in
   let opt_subst = ref [] in
   let opt_includes = ref [] in
+  let opt_persist_cookies = ref false in
   let arg_usage = "mw-edit <options> text" in
   let arg_specs = Arg.align [
     "-api", Arg.String (fun s -> opt_api := Some (uri_of_arg s)),
@@ -198,6 +199,8 @@ let () =
                      substitute it for <x>.";
     "-I", Arg.String (fun s -> opt_includes := s :: !opt_includes),
       "<dir> Add <dir> to the include path.";
+    "-persistent-cookies", Arg.Unit (fun () -> opt_persist_cookies := true),
+      " Load and save non-session cookies if any.";
   ] in
   let misuse msg = eprintf "%s\n" msg; exit 64 in
   let mandatory name opt =
@@ -223,7 +226,9 @@ let () =
     misuse "Only one mapping can be loaded from standard input.";
 
   Lwt_main.run begin
-    let%lwt mw = Mwapi_lwt.open_api ?cert:!opt_cert ?certkey:!opt_certkey api in
+    let%lwt mw =
+      Mwapi_lwt.open_api ?cert:!opt_cert ?certkey:!opt_certkey
+                         ~load_cookies:!opt_persist_cookies api in
     let%lwt subst =
       Lwt_list.fold_left_s
         (fun subst ->
@@ -246,7 +251,7 @@ let () =
       | Some (_ as name, password) -> Utils.login ~name ~password mw
       end >>
       edit ~do_replace:!opt_replace ~page:(`Title page) ~target subst mw >>
-      Mwapi_lwt.close_api mw
+      Mwapi_lwt.close_api ~save_cookies:!opt_persist_cookies mw
     with
     | Wiki_error {wiki_error_code; wiki_error_info; _} ->
       Lwt_log.error_f "%s - %s" wiki_error_code wiki_error_info
