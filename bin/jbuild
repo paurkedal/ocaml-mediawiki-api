@@ -4,19 +4,19 @@
  ((name common)
   (wrapped false)
   (modules (Template Utils))
-  (flags (-ppx ppx_lwt))
+  (preprocess (pps (lwt.ppx)))
   (libraries (mediawiki_api pcre))))
 
 (executable
  ((name mw_edit)
   (modules (Mw_edit))
-  (flags (-ppx ppx_lwt))
+  (preprocess (pps (lwt.ppx)))
   (libraries (cmdliner common mediawiki_api pcre))))
 
 (executable
  ((name mw_filter)
   (modules (Mw_filter))
-  (flags (-ppx ppx_lwt))
+  (preprocess (pps (lwt.ppx)))
   (libraries (cmdliner common mediawiki_api))))
 
 (install

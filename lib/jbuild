@@ -17,8 +17,7 @@
     Mwapi_query_list
     Mwapi_query_prop
     Mwapi_query_prop_revisions))
-  (preprocess (pps (ppx_compose)))
-  (flags (-ppx ppx_lwt))
+  (preprocess (pps (ppx_compose lwt.ppx)))
   (libraries
    (calendar
     cohttp cohttp.lwt
