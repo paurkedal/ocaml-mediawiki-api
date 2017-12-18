@@ -44,6 +44,7 @@ type ('m, 'l, 'a, 'am) query = {
   query_list : 'l;
   query_pages : ('a, 'am) page list;
   query_continue : continue option;
+  query_batchcomplete : bool;
 }
 
 val no_meta : unit meta_query

@@ -18,6 +18,7 @@ open Kojson_pattern
 open Mwapi
 open Mwapi_prereq
 open Unprime
+open Unprime_option
 
 type change = {
   change_oldrevid : int;
@@ -29,6 +30,7 @@ type edit = {
   edit_pageid : int;
   edit_title : string;
   edit_change : change option;
+  edit_contentmodel : string;
 }
 
 type watchlist = [`Watch | `Unwatch | `Preferences | `Nochange]
@@ -44,6 +46,7 @@ let request_decode =
     K.assoc begin
       "result"^: K.literal (`String "Success") %> fun () ->
       "pageid"^: K.int %> fun edit_pageid ->
+      "contentmodel"^?: Option.map K.string %> fun edit_contentmodel ->
       "title"^: K.string %> fun edit_title ->
       begin
         "nochange"^?: function
@@ -55,7 +58,8 @@ let request_decode =
           Ka.stop (Some {change_oldrevid; change_newrevid;
                          change_newtimestamp})
       end %> fun edit_change ->
-      {edit_pageid; edit_title; edit_change}
+      let edit_contentmodel = Option.get_or "" edit_contentmodel in
+      {edit_pageid; edit_title; edit_change; edit_contentmodel}
     end %> pair
 
 let edit ?token ?summary ?(minor = false) ?(bot = true)

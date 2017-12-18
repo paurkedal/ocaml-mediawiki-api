@@ -58,6 +58,7 @@ type ('m, 'l, 'a, 'am) query = {
   query_list : 'l;
   query_pages : ('a, 'am) page list;
   query_continue : continue option;
+  query_batchcomplete : bool;
 }
 
 let no_meta = {mq_params = Qparams.empty; mq_decode = fun jain -> ((), jain)}
@@ -79,11 +80,19 @@ let combine ?continue mq lq pq =
     ("action", "query") :: (cont_params @ Qparams.to_params params) in
   let request_decode =
     "continue"^?: decode_continue %> fun query_continue ->
+    "batchcomplete"^?: Option.map (K.string_enum ["", ()]) %> fun batchcompl ->
     "query"^: K.assoc begin fun jain ->
       let query_meta, jain = mq.mq_decode jain in
       let query_list, jain = lq.lq_decode jain in
       let query_pages, jain = pq.pq_decode jain in
-      Ka.stop {query_meta; query_list; query_pages; query_continue} jain
+      let query_result = {
+        query_meta;
+        query_list;
+        query_pages;
+        query_continue;
+        query_batchcomplete = batchcompl <> None;
+      } in
+      Ka.stop query_result jain
     end %> pair in
   {request_method = `GET; request_params; request_decode}
 
