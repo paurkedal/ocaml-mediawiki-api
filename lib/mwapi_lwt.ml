@@ -22,6 +22,7 @@ open Unprime
 open Unprime_option
 
 let section = Lwt_log.Section.make "mwapi"
+let kojson_section = Lwt_log.Section.make "mwapi.kojson"
 
 module Cookiejar_io = Mwapi_cookiejar.Make (Cohttp_lwt_unix.IO)
 
@@ -97,8 +98,8 @@ let make_json_warning_buffer () =
   let rec emit logger =
     try
       let (p, msg) = Lwt_sequence.take_l json_warnings in
-      Lwt_log.warning_f ~logger "In response below %s: %s"
-                        (Kojson.string_of_path p) msg >>
+      Lwt_log.debug_f ~logger ~section:kojson_section "In response below %s: %s"
+                      (Kojson.string_of_path p) msg >>
       emit logger
     with Lwt_sequence.Empty -> Lwt.return_unit in
   (warn, emit)
