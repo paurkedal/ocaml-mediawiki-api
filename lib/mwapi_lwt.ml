@@ -74,10 +74,10 @@ let open_api ?cert ?certkey ?(logger = !Lwt_log.default) ?(load_cookies = false)
 let close_api ?(save_cookies = false) {endpoint; cookiejar; _} =
   (* TODO: Expire cookies *)
   let%lwt origin = Lwt.wrap1 Mwapi_cookiejar.uri_origin endpoint in
-  mkdir_rec (Filename.dirname fp) >>
   begin
     if not save_cookies then Lwt.return_unit else
     let fp = Mwapi_cookiejar.persistence_path ~origin () in
+    mkdir_rec (Filename.dirname fp) >>
     Lwt_io.with_file ~mode:Lwt_io.output fp
       (fun oc -> Cookiejar_io.write ~origin oc cookiejar)
   end
