@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -127,7 +127,7 @@ let load_template_from fp =
   Lwt_io.with_file ~mode:Lwt_io.input fp
     (fun ic ->
       let s = Bytes.create st.Unix.st_size in
-      Lwt_io.read_into_exactly ic s 0 st.Unix.st_size >>
+      Lwt_io.read_into_exactly ic s 0 st.Unix.st_size >>= fun () ->
       Lwt.return (template_of_string (Bytes.to_string s)))
 
 let load_template dirs x =
@@ -249,8 +249,9 @@ let () =
       begin match !opt_login with
       | None -> Lwt.return_unit
       | Some (_ as name, password) -> Utils.login ~name ~password mw
-      end >>
-      edit ~do_replace:!opt_replace ~page:(`Title page) ~target subst mw >>
+      end >>= fun () ->
+      edit ~do_replace:!opt_replace ~page:(`Title page) ~target subst mw
+        >>= fun () ->
       Mwapi_lwt.close_api ~save_cookies:!opt_persist_cookies mw
     with
     | Wiki_error {wiki_error_code; wiki_error_info; _} ->

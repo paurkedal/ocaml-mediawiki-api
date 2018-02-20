@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -77,13 +77,13 @@ let filter_text ~fc text =
   let res = ref "" in
   Lwt_process.with_process_full fc.fc_command begin fun process ->
     let writer =
-      Lwt_io.write process#stdin text >>
+      Lwt_io.write process#stdin text >>= fun () ->
       Lwt_io.close process#stdin in
     let reader = Lwt_io.read process#stdout >|= fun s -> res := s in
     let logger =
       Lwt_stream.iter_s (Lwt_io.eprintlf "<stderr> %s")
                         (Lwt_io.read_lines process#stderr) in
-    Lwt.join [writer; reader; logger] >>
+    Lwt.join [writer; reader; logger] >>= fun () ->
     match%lwt process#status with
     | Unix.WEXITED ec ->
       begin match
@@ -123,8 +123,8 @@ let main api login page_title actions cmd persist_cookies =
       begin match login with
       | None -> Lwt.return_unit
       | Some (_ as name, password) -> Utils.login ~name ~password mw
-      end >>
-      filter_page ~fc ~page mw >>
+      end >>= fun () ->
+      filter_page ~fc ~page mw >>= fun () ->
       Mwapi_lwt.close_api ~save_cookies:persist_cookies mw
     end
 
