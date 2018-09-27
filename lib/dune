@@ -18,12 +18,13 @@
     Mwapi_query_prop_revisions
     ;; internal
     Mwapi_prereq)
-  (preprocess (pps ppx_compose lwt.ppx))
+  (preprocess (pps ppx_compose lwt_ppx))
   (libraries
     calendar
     cohttp cohttp.lwt
     conduit conduit-lwt conduit-lwt-unix
     kojson
+    lwt lwt_log
     ppx_compose
     prime
     ssl

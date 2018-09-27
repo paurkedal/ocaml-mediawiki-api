@@ -2,19 +2,19 @@
   (name common)
   (wrapped false)
   (modules Template Utils)
-  (preprocess (pps lwt.ppx))
+  (preprocess (pps lwt_ppx))
   (libraries mediawiki_api pcre))
 
 (executable
   (name mw_edit)
   (modules Mw_edit)
-  (preprocess (pps lwt.ppx))
+  (preprocess (pps lwt_ppx))
   (libraries cmdliner common mediawiki_api pcre))
 
 (executable
   (name mw_filter)
   (modules Mw_filter)
-  (preprocess (pps lwt.ppx))
+  (preprocess (pps lwt_ppx))
   (libraries cmdliner common mediawiki_api))
 
 (install
