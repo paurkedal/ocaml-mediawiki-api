@@ -1,11 +1,9 @@
-(jbuild_version 1)
-
 (library
- ((name mediawiki_api)
+  (name mediawiki_api)
   (public_name mediawiki-api)
   (wrapped false)
   (modules
-   (Mwapi
+    Mwapi
     Mwapi_common
     Mwapi_cookiejar
     Mwapi_lwt
@@ -19,10 +17,10 @@
     Mwapi_query_prop
     Mwapi_query_prop_revisions
     ;; internal
-    Mwapi_prereq))
-  (preprocess (pps (ppx_compose lwt.ppx)))
+    Mwapi_prereq)
+  (preprocess (pps ppx_compose lwt.ppx))
   (libraries
-   (calendar
+    calendar
     cohttp cohttp.lwt
     conduit conduit-lwt conduit-lwt-unix
     kojson
@@ -30,9 +28,9 @@
     prime
     ssl
     xdg-basedir
-    yojson))))
+    yojson))
 
 (rule
- ((targets (mwapi.ml))
-  (deps (mwapi.mli))
-  (action (copy mwapi.mli mwapi.ml))))
+  (targets mwapi.ml)
+  (deps mwapi.mli)
+  (action (copy mwapi.mli mwapi.ml)))
