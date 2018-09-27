@@ -1,15 +1,12 @@
-opam-version: "1.2"
+opam-version: "2.0"
 name: "mediawiki-api"
-author: "Petter A. Urkedal <paurkedal@gmail.com>"
 maintainer: "Petter A. Urkedal <paurkedal@gmail.com>"
+authors: "Petter A. Urkedal <paurkedal@gmail.com>"
+license: "LGPL-3 with OCaml linking exception"
 homepage: "https://github.com/paurkedal/ocaml-mediawiki-api/"
 bug-reports: "https://github.com/paurkedal/ocaml-mediawiki-api/issues"
-dev-repo: "https://github.com/paurkedal/ocaml-mediawiki-api.git"
-license: "LGPL-3 with OCaml linking exception"
-
-build: [["jbuilder" "build" "-p" name "-j" jobs]]
-
 depends: [
+  "ocaml"
   "calendar"
   "cmdliner"
   "cohttp"
@@ -26,3 +23,5 @@ depends: [
   "ppx_compose" {build}
   "yojson"
 ]
+build: ["jbuilder" "build" "-p" name "-j" jobs]
+dev-repo: "git+https://github.com/paurkedal/ocaml-mediawiki-api.git"
