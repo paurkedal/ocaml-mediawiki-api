@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -116,9 +116,9 @@ let set_login opt arg =
   | Some p -> opt := Some p
   | _ -> raise (Arg.Bad "Expecting <username>:<password>.")
 
-let bsnl_rex = Pcre.regexp "\\\\\n"
+let bsnl_re = Re.compile Re.(str "\\\n")
 let template_of_string s =
-  Template.of_string (Pcre.replace ~rex:bsnl_rex ~templ:"" s)
+  Template.of_string (Re.replace_string bsnl_re ~by:"" s)
 
 let load_template_stdin () = Lwt_io.read Lwt_io.stdin >|= template_of_string
 

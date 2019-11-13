@@ -36,19 +36,19 @@ let subst f =
 let subst_map m =
   subst (fun x -> try Some (String_map.find x m) with Not_found -> None)
 
-let stencil_rex = Pcre.regexp "{{STENCIL\\|([^{}]+)}}"
+let stencil_re = Re.compile
+  Re.(seq [str "{{STENCIL|"; group (rep1 (compl [set "{}"])); str "}}"])
 
-let of_string s =
+let of_string txt =
   let trn = function
-    | Pcre.Text s -> Some (Text s)
-    | Pcre.Delim _ -> None
-    | Pcre.Group (_, s) ->
-      Some begin match String.cut_affix "|" s with
-      | None -> Stencil (s, None)
-      | Some (x, s') -> Stencil (x, Some s')
-      end
-    | Pcre.NoGroup -> None in
-  List.filter_map trn (Pcre.full_split ~rex:stencil_rex s)
+   | `Text s -> Some (Text s)
+   | `Delim g ->
+      let s = Re.Group.get g 1 in
+      Some (match String.cut_affix "|" s with
+            | None -> Stencil (s, None)
+            | Some (x, s') -> Stencil (x, Some s'))
+  in
+  List.filter_map trn (Re.split_full stencil_re txt)
 
 let bprint buf =
   List.iter

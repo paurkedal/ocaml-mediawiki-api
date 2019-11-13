@@ -20,7 +20,6 @@ depends: [
   "lwt_log"
   "ocaml"
   "ocaml-xdg-basedir"
-  "pcre"
   "ppx_compose"
   "prime"
   "ssl"

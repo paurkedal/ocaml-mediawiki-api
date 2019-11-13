@@ -3,13 +3,13 @@
   (wrapped false)
   (modules Template Utils)
   (preprocess (pps lwt_ppx))
-  (libraries mediawiki_api pcre))
+  (libraries mediawiki_api))
 
 (executable
   (name mw_edit)
   (modules Mw_edit)
   (preprocess (pps lwt_ppx))
-  (libraries cmdliner common mediawiki_api pcre))
+  (libraries cmdliner common mediawiki_api))
 
 (executable
   (name mw_filter)
