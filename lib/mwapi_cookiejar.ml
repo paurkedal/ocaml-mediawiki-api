@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -228,7 +228,7 @@ module Make (IO : Cohttp.S.IO) = struct
 end
 
 let persistence_path ?(ext = "cookies") ~origin:(domain, port) () =
-  let is_safechar c = Char.is_alnum c || c = '.' || Char.code c >= 128 in
+  let is_safechar c = Char.is_ascii_alnum c || c = '.' || Char.code c >= 128 in
   if domain = ".." || not (String.for_all is_safechar domain) then
     failwith_f "Unsafe character in domain \"%s\"." domain;
   let cache_dir = XDGBaseDir.Cache.user_dir () in

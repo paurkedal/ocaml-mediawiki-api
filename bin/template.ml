@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -48,7 +48,7 @@ let of_string s =
       | Some (x, s') -> Stencil (x, Some s')
       end
     | Pcre.NoGroup -> None in
-  List.fmap trn (Pcre.full_split ~rex:stencil_rex s)
+  List.filter_map trn (Pcre.full_split ~rex:stencil_rex s)
 
 let bprint buf =
   List.iter
