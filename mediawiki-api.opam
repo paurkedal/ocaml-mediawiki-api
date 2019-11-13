@@ -6,22 +6,24 @@ license: "LGPL-3 with OCaml linking exception"
 homepage: "https://github.com/paurkedal/ocaml-mediawiki-api/"
 bug-reports: "https://github.com/paurkedal/ocaml-mediawiki-api/issues"
 depends: [
-  "ocaml"
   "calendar"
   "cmdliner"
   "cohttp"
+  "cohttp-lwt"
   "cohttp-lwt-unix"
   "conduit"
+  "conduit-lwt"
   "conduit-lwt-unix"
-  "jbuilder" {build}
+  "dune"
   "kojson"
   "lwt"
   "lwt_log"
-  "lwt_ssl"
+  "ocaml"
   "ocaml-xdg-basedir"
   "pcre"
+  "ppx_compose"
   "prime"
-  "ppx_compose" {build}
+  "ssl"
   "yojson"
 ]
 build: ["jbuilder" "build" "-p" name "-j" jobs]

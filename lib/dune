@@ -21,10 +21,15 @@
   (preprocess (pps ppx_compose lwt_ppx))
   (libraries
     calendar
-    cohttp cohttp-lwt cohttp-lwt-unix
-    conduit conduit-lwt conduit-lwt-unix
+    cohttp
+    cohttp-lwt
+    cohttp-lwt-unix
+    conduit
+    conduit-lwt
+    conduit-lwt-unix
     kojson
-    lwt lwt_log
+    lwt
+    lwt_log
     ppx_compose
     prime
     ssl
