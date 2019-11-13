@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-type json = Yojson.Basic.json
+type json = Yojson.Basic.t
 
 type http_error = {
   http_error_code : int;
