@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,6 +15,7 @@
  *)
 
 open Cmdliner
+open Logging
 open Lwt.Infix
 open Unprime_list
 open Unprime_string
@@ -101,8 +102,10 @@ let filter_text ~fc text =
 let filter_page ~fc ~page mw =
   let%lwt text = Mwapi_lwt.call Mwapi_parse.(parse ~page wikitext) mw in
   match%lwt filter_text ~fc text with
-  | `Skip -> Lwt_log.info "Skipping due to exit code."
-  | `Replace text' when text' = text -> Lwt_log.info "No changes to write back."
+  | `Skip ->
+    Log.info (fun f -> f "Skipping due to exit code.")
+  | `Replace text' when text' = text ->
+    Log.info (fun f -> f "No changes to write back.")
   | `Replace _ as op ->
     let%lwt token = Utils.get_edit_token mw in
     Utils.call_edit
@@ -129,6 +132,7 @@ let main api login page_title actions cmd persist_cookies =
     end
 
 let () =
+  setup_logging ();
   let api_t =
     Arg.(required & opt (some uri_conv) None &
          info ~docs:"CONNECTION OPTIONS"

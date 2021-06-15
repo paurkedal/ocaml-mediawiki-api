@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -21,16 +21,18 @@ open Mwapi
 open Unprime
 open Unprime_option
 
-let section = Lwt_log.Section.make "mwapi"
-let kojson_section = Lwt_log.Section.make "mwapi.kojson"
+let log_src = Logs.Src.create "mwapi"
+module Log = (val Logs_lwt.src_log log_src)
+
+let decode_log_src = Logs.Src.create "mwapi.kojson"
+module Decode_log = (val Logs_lwt.src_log decode_log_src)
 
 module Cookiejar_io = Mwapi_cookiejar.Make (Cohttp_lwt_unix.IO)
 
 type client = {
-  ctx : Cohttp_lwt_unix.Client.ctx option;
-  endpoint : Uri.t;
-  cookiejar : Mwapi_cookiejar.t;
-  logger : Lwt_log.logger;
+  ctx: Cohttp_lwt_unix.Client.ctx option;
+  endpoint: Uri.t;
+  cookiejar: Mwapi_cookiejar.t;
 }
 
 let rec mkdir_rec dir =
@@ -43,7 +45,7 @@ let rec mkdir_rec dir =
         Lwt_unix.mkdir dir 0o755
       | xc -> Lwt.fail xc)
 
-let open_api ?cert ?certkey ?(logger = !Lwt_log.default) ?(load_cookies = false)
+let open_api ?cert ?certkey ?(load_cookies = false)
              endpoint =
   (match Uri.scheme endpoint with Some "https" -> Ssl.init () | _ -> ());
   let make_context cert certkey =
@@ -68,9 +70,9 @@ let open_api ?cert ?certkey ?(logger = !Lwt_log.default) ?(load_cookies = false)
       (fun () ->
         Lwt_io.with_file ~mode:Lwt_io.input fp
           (fun ic -> Cookiejar_io.read ~origin ic cookiejar))
-      (function _ -> Lwt_log.warning ~section "Contaminated cookie jar.")
+      (function _ -> Log.warn (fun f -> f "Contaminated cookie jar."))
   end >>= fun () ->
-  Lwt.return {ctx; endpoint; cookiejar; logger}
+  Lwt.return {ctx; endpoint; cookiejar}
 
 let close_api ?(save_cookies = false) {endpoint; cookiejar; _} =
   (* TODO: Expire cookies *)
@@ -95,16 +97,17 @@ let decode_warnings =
 let make_json_warning_buffer () =
   let buf = ref [] in
   let warn p msg = buf := (p, msg) :: !buf in
-  let emit logger =
+  let emit () =
     let aux (p, msg) =
-      Lwt_log.debug_f ~logger ~section:kojson_section "In response below %s: %s"
-                      (Kojson.string_of_path p) msg in
+      Decode_log.debug (fun f ->
+        f "In response below %s: %s" (Kojson.string_of_path p) msg) in
     let warnings = List.rev !buf in
     buf := [];
-    Lwt_list.iter_s aux warnings in
+    Lwt_list.iter_s aux warnings
+  in
   (warn, emit)
 
-let decode_json logger resp body =
+let decode_json resp body =
   let%lwt body_str = Cohttp_lwt.Body.to_string body in
   let warn, emit_json_warnings = make_json_warning_buffer () in
 
@@ -122,7 +125,7 @@ let decode_json logger resp body =
               Ka.stop {wiki_error_code; wiki_error_info; wiki_error_details}
             end %> fun err ->
           Ka.stop begin
-            emit_json_warnings logger >>= fun () ->
+            emit_json_warnings () >>= fun () ->
             Lwt.fail (Wiki_error err)
           end
         end;
@@ -130,10 +133,9 @@ let decode_json logger resp body =
           "warnings"^?: Option.map decode_warnings %> fun wiki_warnings ->
           fun rest ->
             let result = `Assoc (Ka.any rest) in
-            emit_json_warnings logger >>= fun () ->
+            emit_json_warnings () >>= fun () ->
             Lwt_list.iter_s
-              (fun (m, msg) ->
-                Lwt_log.warning_f ~logger "From wiki %s: %s" m msg)
+              (fun (m, msg) -> Log.warn (fun f -> f "From wiki %s: %s" m msg))
               (Option.get_or [] wiki_warnings) >>= fun () ->
             Lwt.return result
         end;
@@ -143,25 +145,24 @@ let decode_json logger resp body =
     Lwt.fail (Http_error {http_error_code = Cohttp.Code.code_of_status st;
                           http_error_info = body_str})
 
-let log_headers logger headers =
+let log_headers headers =
   Lwt_list.iter_s
-    (fun ln -> Lwt_log.debug_f ~logger ~section "Header: %s" ln)
+    (fun ln -> Log.debug (fun f -> f "Header: %s" ln))
     (Cohttp.Header.to_lines headers)
 
-let get_json params {ctx; endpoint; cookiejar; logger} =
+let get_json params {ctx; endpoint; cookiejar} =
   let params = ("format", "json") :: params in
   let params = List.map (fun (k, v) -> (k, [v])) params in
   let uri = Uri.with_query endpoint params in
   let cookies_hdr = Mwapi_cookiejar.header endpoint cookiejar in
   let headers = Cohttp.Header.of_list [cookies_hdr] in
-  log_headers logger headers >>= fun () ->
-  Lwt_log.debug_f ~logger ~section "GETting %s." (Uri.to_string uri)
-    >>= fun () ->
+  log_headers headers >>= fun () ->
+  Log.debug (fun f -> f "GETting %a." Uri.pp uri) >>= fun () ->
   let%lwt resp, body = Client.get ?ctx ~headers uri in
   Mwapi_cookiejar.extract endpoint (Cohttp.Response.headers resp) cookiejar;
-  decode_json logger resp body
+  decode_json resp body
 
-let post_json params {ctx; endpoint; cookiejar; logger} =
+let post_json params {ctx; endpoint; cookiejar} =
   let params = ("format", "json") :: params in
   let params = List.map (fun (k, v) -> (k, [v])) params in
   let postdata = Uri.encoded_of_query params in
@@ -171,12 +172,12 @@ let post_json params {ctx; endpoint; cookiejar; logger} =
     "Content-Type", "application/x-www-form-urlencoded";
     cookies_hdr
   ] in
-  log_headers logger headers >>= fun () ->
-  Lwt_log.debug_f ~logger ~section "POSTing to %s: %s"
-                  (Uri.to_string endpoint) postdata >>= fun () ->
+  log_headers headers >>= fun () ->
+  Log.debug (fun f -> f "POSTing to %a: %s" Uri.pp endpoint postdata)
+    >>= fun () ->
   let%lwt resp, body = Client.post ?ctx ~headers ~body endpoint in
   Mwapi_cookiejar.extract endpoint (Cohttp.Response.headers resp) cookiejar;
-  decode_json logger resp body
+  decode_json resp body
 
 let call {request_method; request_params; request_decode} mw =
   (match request_method with
@@ -185,4 +186,4 @@ let call {request_method; request_params; request_decode} mw =
   let warn, emit_json_warnings = make_json_warning_buffer () in
   let result = Kojson.jin_of_json ~warn json
             |> K.assoc_or_null (request_decode %> uncurry Ka.stop) in
-  emit_json_warnings mw.logger >>= fun () -> Lwt.return result
+  emit_json_warnings () >>= fun () -> Lwt.return result

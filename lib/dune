@@ -28,8 +28,9 @@
     conduit-lwt
     conduit-lwt-unix
     kojson
+    logs
+    logs.lwt
     lwt
-    lwt_log
     ppx_compose
     prime
     ssl

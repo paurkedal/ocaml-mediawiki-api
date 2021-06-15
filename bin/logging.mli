@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,19 +14,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Mwapi
+module Log : Logs_lwt.LOG
 
-type client
-
-val open_api :
-  ?cert: string -> ?certkey: string ->
-  ?load_cookies: bool ->
-  Uri.t -> client Lwt.t
-
-val close_api :
-  ?save_cookies: bool ->
-  client -> unit Lwt.t
-
-val get_json : (string * string) list -> client -> json Lwt.t
-val post_json : (string * string) list -> client -> json Lwt.t
-val call : 'a request -> client -> 'a Lwt.t
+val setup_logging : unit -> unit

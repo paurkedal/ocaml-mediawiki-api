@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Logging
 open Lwt.Infix
 open Mwapi
 open Mwapi_common
@@ -148,6 +149,7 @@ let loadspec_of_arg arg =
   | Some (x, fp) -> `Load_from (x, fp)
 
 let () =
+  setup_logging ();
   let opt_api = ref None in
   let opt_cert = ref None in
   let opt_certkey = ref None in
@@ -255,7 +257,7 @@ let () =
       Mwapi_lwt.close_api ~save_cookies:!opt_persist_cookies mw
     with
     | Wiki_error {wiki_error_code; wiki_error_info; _} ->
-      Lwt_log.error_f "%s - %s" wiki_error_code wiki_error_info
+      Log.err (fun f -> f "%s - %s" wiki_error_code wiki_error_info)
     | Http_error {http_error_code; http_error_info; _} ->
-      Lwt_log.error_f "HTTP %d - %s" http_error_code http_error_info
+      Log.err (fun f -> f "HTTP %d - %s" http_error_code http_error_info)
   end

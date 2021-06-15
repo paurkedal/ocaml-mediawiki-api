@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,12 +14,11 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Logging
 open Printf
 open Mwapi_common
 
 let fail_f fmt = ksprintf (fun s -> Lwt.fail (Failure s)) fmt
-
-let log_section = Lwt_log.Section.make "mw-tools"
 
 let login ~name ~password mw =
   match%lwt
@@ -43,9 +42,9 @@ let call_edit op mw =
   let%lwt r = Mwapi_lwt.call op mw in
   match r.edit_change with
   | None ->
-    Lwt_log.info_f ~section:log_section
-      "No changes to page # %d \"%s\"." r.edit_pageid r.edit_title
+    Log.info (fun f ->
+      f "No changes to page # %d %S." r.edit_pageid r.edit_title)
   | Some change ->
-    Lwt_log.info_f ~section:log_section
-      "Updated page # %d \"%s\" rev %d -> %d at %s." r.edit_pageid r.edit_title
-      change.change_oldrevid change.change_newrevid change.change_newtimestamp
+    Log.info (fun f ->
+      f "Updated page # %d %S rev %d -> %d at %s." r.edit_pageid r.edit_title
+      change.change_oldrevid change.change_newrevid change.change_newtimestamp)
