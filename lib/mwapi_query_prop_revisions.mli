@@ -44,6 +44,7 @@ module Rvprop : sig
     type ids = {revid: int; parentid: int}
     type flags = {minor: bool}
     type content = {contentformat: string; contentbody: string}
+    type slots = content String_map.t
     include SCHEME with type 'a mode := 'a ident
   end
 
@@ -63,7 +64,7 @@ module Rvprop : sig
     val contentmodel : string requested
     val comment : string requested
     val parsedcomment : string requested
-    val content : Reply.content requested
+    val content : Reply.slots requested
     val tags : string list requested
   end
 
@@ -85,6 +86,7 @@ val revisions :
   ?section: int ->
   ?continue: string ->
   ?diffto: [`Id of int | `Prev | `Next | `Cur | `Text of string] ->
+  ?slots: string list ->
   ?contentformat: string ->
   ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l) Rvprop.Request.t ->
   (('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l) Rvprop.Reply.t list,

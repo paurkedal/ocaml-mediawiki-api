@@ -50,6 +50,7 @@ module Rvprop = struct
     type ids = {revid: int; parentid: int}
     type flags = {minor: bool}
     type content = {contentformat: string; contentbody: string}
+    type slots = content String_map.t
     include Scheme (struct type 'a t = 'a end)
   end
 
@@ -85,10 +86,21 @@ module Rvprop = struct
 
     let decode_flags = "minor"^?: fun o -> pair {minor = o <> None}
 
+    let decode_content_slot =
+      K.assoc begin
+        "contentformat"^: K.string %> fun contentformat ->
+        "*"^: K.string %> fun contentbody ->
+        Ka.drop ["contentmodel"] %> Ka.stop {contentformat; contentbody}
+      end
+
     let decode_content =
-      "contentformat"^: K.string %> fun contentformat ->
-      "*"^: K.string %> fun contentbody ->
-      pair {contentformat; contentbody}
+      "slots"^:
+        K.assoc begin fun jain ->
+          Ka.fold
+            (fun k jin -> String_map.add k (decode_content_slot jin))
+            jain String_map.empty
+        end %> fun slots ->
+      pair slots
 
     let ids = Some "ids", decode_ids
     let flags = Some "flags", decode_flags
@@ -156,10 +168,12 @@ let revisions
         ?section
         ?continue
         ?diffto
+        ?(slots = ["*"])
         ?contentformat
         rvprop =
   let prop_params = Qparams.singleton "prop" "revisions"
     |> Qparams.add "rvprop" (Rvprop.Request.to_string rvprop)
+    |> Qparams.add "rvslots" (String.concat "|" slots)
     |> Option.fold (Qparams.add "rvlimit" % string_of_int) limit
     |> Option.fold (Qparams.add "rvstartid" % string_of_int) startid
     |> Option.fold (Qparams.add "rvendid" % string_of_int) stopid
