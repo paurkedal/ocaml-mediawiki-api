@@ -19,6 +19,7 @@ depends: [
   "kojson"
   "logs"
   "lwt"
+  "lwt_ssl"
   "ocaml"
   "ocaml-xdg-basedir"
   "ppx_compose"
