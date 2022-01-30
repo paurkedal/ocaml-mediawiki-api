@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -29,3 +29,48 @@ type token_type =
   | `Createaccount ]
 
 val tokens : ([< token_type], 'n) Nlist.t -> (string, 'n) Nlist.t meta_query
+
+(* Needs more work using siprop,
+ * See https://www.mediawiki.org/wiki/API:Siteinfo *)
+
+type namespace = {
+  id: int;
+  case: [`First_letter | `Case_sensitive];
+  subpages: bool;
+  canonical: string option;
+  defaultcontentmodel: string option;
+  name: string;
+}
+
+type namespacealias = {
+  id: int;
+  name: string;
+}
+
+type usergroup = {
+  name: string;
+  rights: string list;
+}
+
+type extension = {
+  type_: string;
+  name: string;
+  namemsg: string;
+  version: string option;
+  descriptionmsg: string;
+  author: string;
+  url: string option;
+  license_name: string option;
+  license: string option;
+}
+
+module Siprop : sig
+  type 'a t
+  val (&) : 'a t -> 'b t -> ('a * 'b) t
+  val namespaces : namespace list t
+  val namespacealiases : namespacealias list t
+  val usergroups : usergroup list t
+  val extensions : extension list t
+end
+
+val siteinfo : 'a Siprop.t -> 'a meta_query
