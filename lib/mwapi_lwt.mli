@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -26,6 +26,12 @@ val open_api :
 val close_api :
   ?save_cookies: bool ->
   client -> unit Lwt.t
+
+val with_api :
+  ?cert: string -> ?certkey: string ->
+  ?load_cookies: bool ->
+  ?save_cookies: bool ->
+  Uri.t -> (client -> 'a Lwt.t) -> 'a Lwt.t
 
 val get_json : (string * string) list -> client -> json Lwt.t
 val post_json : (string * string) list -> client -> json Lwt.t

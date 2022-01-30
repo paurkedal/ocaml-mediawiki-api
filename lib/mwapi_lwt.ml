@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -84,6 +84,13 @@ let close_api ?(save_cookies = false) {endpoint; cookiejar; _} =
     Lwt_io.with_file ~mode:Lwt_io.output fp
       (fun oc -> Cookiejar_io.write ~origin oc cookiejar)
   end
+
+let with_api
+      ?cert ?certkey
+      ?(load_cookies = false) ?(save_cookies = load_cookies)
+      endpoint f =
+  let%lwt mw = open_api ?cert ?certkey ~load_cookies endpoint in
+  Lwt.finalize (fun () -> f mw) (fun () -> close_api ~save_cookies mw)
 
 let decode_star =
   K.assoc begin
