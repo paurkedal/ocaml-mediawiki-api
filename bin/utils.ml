@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,21 +15,24 @@
  *)
 
 open Logging
+open Lwt.Syntax
 open Printf
 open Mwapi_common
 
 let fail_f fmt = ksprintf (fun s -> Lwt.fail (Failure s)) fmt
 
 let login ~name ~password mw =
-  match%lwt
-    match%lwt Mwapi_lwt.call (Mwapi_login.login ~name ~password ()) mw with
-    | `Need_token token ->
-      Mwapi_lwt.call (Mwapi_login.login ~name ~password ~token ()) mw
-    | status -> Lwt.return status
-  with
-  | `Success -> Lwt.return_unit
-  | status ->
-    fail_f "Login failed: %s" (Mwapi_login.string_of_login_status status)
+  let* resp =
+    Mwapi_lwt.call (Mwapi_query.only_meta (Mwapi_query_meta.tokens [`Login])) mw
+  in
+  let Nlist.[token] = resp.query_meta in
+  let* status =
+    Mwapi_lwt.call (Mwapi_login.login ~name ~password ~token ()) mw
+  in
+  (match status with
+   | `Success -> Lwt.return_unit
+   | status ->
+      fail_f "Login failed: %s" (Mwapi_login.string_of_login_status status))
 
 let get_edit_token mw =
   let req = Mwapi_query.only_meta (Mwapi_query_meta.tokens Nlist.[`Csrf]) in
