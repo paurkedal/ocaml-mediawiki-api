@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -136,6 +136,12 @@ let add uri cookie by_origin =
   end
 
 let extract uri hdr by_origin =
+  (* Workaround for https://github.com/mirage/ocaml-cohttp/issues/855 *)
+  let hdr = hdr
+    |> Cohttp.Header.to_list
+    |> List.map (fun (k, v) -> (String.lowercase_ascii k, v))
+    |> Cohttp.Header.of_list
+  in
   List.iter (fun (_, cookie) -> add uri cookie by_origin)
             (Set_cookie_hdr.extract hdr)
 
