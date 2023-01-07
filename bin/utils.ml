@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -36,13 +36,13 @@ let login ~name ~password mw =
 
 let get_edit_token mw =
   let req = Mwapi_query.only_meta (Mwapi_query_meta.tokens Nlist.[`Csrf]) in
-  let%lwt res = Mwapi_lwt.call req mw in
+  let* res = Mwapi_lwt.call req mw in
   (match res.Mwapi_query.query_meta with
    | Nlist.[token] -> Lwt.return token)
 
 let call_edit op mw =
   let open Mwapi_edit in
-  let%lwt r = Mwapi_lwt.call op mw in
+  let* r = Mwapi_lwt.call op mw in
   match r.edit_change with
   | None ->
     Log.info (fun f ->

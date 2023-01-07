@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,6 +17,7 @@
 open Cmdliner
 open Logging
 open Lwt.Infix
+open Lwt.Syntax
 open Unprime_list
 open Unprime_string
 open Utils
@@ -85,7 +86,7 @@ let filter_text ~fc text =
       Lwt_stream.iter_s (Lwt_io.eprintlf "<stderr> %s")
                         (Lwt_io.read_lines process#stderr) in
     Lwt.join [writer; reader; logger] >>= fun () ->
-    match%lwt process#status with
+    process#status >>= function
     | Unix.WEXITED ec ->
       begin match
         try Int_map.find ec (fst fc.fc_actions)
@@ -100,14 +101,14 @@ let filter_text ~fc text =
   end
 
 let filter_page ~fc ~page mw =
-  let%lwt text = Mwapi_lwt.call Mwapi_parse.(parse ~page wikitext) mw in
-  match%lwt filter_text ~fc text with
+  let* text = Mwapi_lwt.call Mwapi_parse.(parse ~page wikitext) mw in
+  filter_text ~fc text >>= function
   | `Skip ->
     Log.info (fun f -> f "Skipping due to exit code.")
   | `Replace text' when text' = text ->
     Log.info (fun f -> f "No changes to write back.")
   | `Replace _ as op ->
-    let%lwt token = Utils.get_edit_token mw in
+    let* token = Utils.get_edit_token mw in
     Utils.call_edit
       Mwapi_edit.(edit ~token ~page ~create:`May_not ~recreate:`May_not ~op ())
       mw
@@ -122,7 +123,7 @@ let main api login page_title actions cmd persist_cookies =
       fc_actions = actions;
     } in
     Lwt_main.run begin
-      let%lwt mw = Mwapi_lwt.open_api ~load_cookies:persist_cookies api in
+      let* mw = Mwapi_lwt.open_api ~load_cookies:persist_cookies api in
       begin match login with
       | None -> Lwt.return_unit
       | Some (_ as name, password) -> Utils.login ~name ~password mw
@@ -161,7 +162,7 @@ let () =
   let persist_cookies_t =
     let doc = "Load and save non-session cookies." in
     Arg.(value & flag & info ~doc ["persistent-cookies"]) in
-  let main_t = Term.(pure main $ api_t $ login_t $ page_title_t $
+  let main_t = Term.(const main $ api_t $ login_t $ page_title_t $
                      actions_t $ cmd_t $ persist_cookies_t) in
   let doc = "filter a wiki page though a command and write it back" in
   let man = [
@@ -171,9 +172,5 @@ let () =
     `P "$(tname) ... -P 'Main Page' -- sed -f script.sed";
     `P "would run the main page though a sed script.";
   ] in
-  match Term.(eval (main_t, info ~doc ~man "mw-filter")) with
-  | `Error `Parse -> exit 64
-  | `Error `Term -> exit 69
-  | `Error `Exn -> exit 70
-  | `Ok () -> exit 0
-  | `Version | `Help -> exit 0
+  let cmd = Cmd.v (Cmd.info ~doc ~man "mw-filter") main_t in
+  exit (Cmd.eval cmd)

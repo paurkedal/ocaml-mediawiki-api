@@ -21,11 +21,11 @@ depends: [
   "lwt"
   "lwt_ssl"
   "ocaml"
-  "ocaml-xdg-basedir"
   "ppx_compose"
   "prime"
   "ssl"
   "yojson"
+  "xdg-basedir"
 ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]

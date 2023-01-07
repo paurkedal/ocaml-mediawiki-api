@@ -2,19 +2,16 @@
   (name common)
   (wrapped false)
   (modules Logging Template Utils)
-  (preprocess (pps lwt_ppx))
   (libraries mediawiki_api logs.fmt))
 
 (executable
   (name mw_edit)
   (modules Mw_edit)
-  (preprocess (pps lwt_ppx))
   (libraries cmdliner common mediawiki_api))
 
 (executable
   (name mw_filter)
   (modules Mw_filter)
-  (preprocess (pps lwt_ppx))
   (libraries cmdliner common mediawiki_api))
 
 (install

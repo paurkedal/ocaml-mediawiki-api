@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,6 +16,7 @@
 
 open Logging
 open Lwt.Infix
+open Lwt.Syntax
 open Mwapi
 open Mwapi_common
 open Printf
@@ -35,7 +36,7 @@ type edit_target =
 
 let find_section level tt =
   let open Mwapi_parse in
-  List.search
+  List.find_map
     begin fun {section_level; section_line; section_index; _} ->
       if section_line <> tt || section_level <> level then None
       else Some (int_of_string section_index)
@@ -64,10 +65,10 @@ let find_insertion_point level ipt sections_result =
                (find_section (level - 1) tt sections_result)
 
 let edit ?(do_replace = false) ~page ~target subst mw =
-  let%lwt create, section, tmpl, make_op =
+  let* create, section, tmpl, make_op =
     match target with
     | Edit_section (secn_level, secn_title, ipts) ->
-      let%lwt r = Mwapi_lwt.call Mwapi_parse.(parse ~page sections) mw in
+      let* r = Mwapi_lwt.call Mwapi_parse.(parse ~page sections) mw in
       begin match find_section secn_level secn_title r with
       | Some i ->
         Mwapi_lwt.call Mwapi_parse.(parse ~page ~section:i wikitext) mw
@@ -77,7 +78,7 @@ let edit ?(do_replace = false) ~page ~target subst mw =
         (`May_not, Some (`No i), tmpl, (fun s -> `Replace s))
       | None ->
         begin match
-          List.search (fun ipt -> find_insertion_point secn_level ipt r) ipts
+          List.find_map (fun ipt -> find_insertion_point secn_level ipt r) ipts
         with
         | Some (i, op) ->
           let tmpl = new_section secn_level secn_title in
@@ -88,16 +89,20 @@ let edit ?(do_replace = false) ~page ~target subst mw =
         end
       end
     | Edit_page ->
-      try%lwt
-        if do_replace then
-          Lwt.return (`May, None, new_page, (fun s -> `Replace s))
-        else
-          Mwapi_lwt.call Mwapi_parse.(parse ~page wikitext) mw >|= fun s ->
-          (`May_not, None, Template.of_string s, (fun s -> `Replace s))
-      with Wiki_error {wiki_error_code = "missingtitle"; _} ->
-        Lwt.return (`Must, None, new_page, (fun s -> `Replace s)) in
+      Lwt.catch
+        (fun () ->
+          if do_replace then
+            Lwt.return (`May, None, new_page, (fun s -> `Replace s))
+          else
+            Mwapi_lwt.call Mwapi_parse.(parse ~page wikitext) mw >|= fun s ->
+            (`May_not, None, Template.of_string s, (fun s -> `Replace s)))
+        (function
+         | Wiki_error {wiki_error_code = "missingtitle"; _} ->
+            Lwt.return (`Must, None, new_page, (fun s -> `Replace s))
+         | exn -> Lwt.fail exn)
+  in
   let tmpl = Template.subst_map subst tmpl in
-  let%lwt token = Utils.get_edit_token mw in
+  let* token = Utils.get_edit_token mw in
   let op = make_op (Template.to_string tmpl) in
   Utils.call_edit Mwapi_edit.(edit ~token ~page ~create ?section ~op ()) mw
 
@@ -124,7 +129,7 @@ let template_of_string s =
 let load_template_stdin () = Lwt_io.read Lwt_io.stdin >|= template_of_string
 
 let load_template_from fp =
-  let%lwt st = Lwt_unix.stat fp in
+  let* st = Lwt_unix.stat fp in
   Lwt_io.with_file ~mode:Lwt_io.input fp
     (fun ic ->
       let s = Bytes.create st.Unix.st_size in
@@ -137,10 +142,12 @@ let load_template dirs x =
     | [] -> fail_f "Cannot find template %s." x
     | dir :: dirs ->
       let fp = Filename.concat dir fn in
-      begin
-        try%lwt load_template_from fp
-        with Unix.Unix_error (Unix.ENOENT, _, _) -> loop dirs
-      end in
+      Lwt.catch
+        (fun () -> load_template_from fp)
+        (function
+         | Unix.Unix_error (Unix.ENOENT, _, _) -> loop dirs
+         | exn -> Lwt.fail exn)
+  in
   loop dirs
 
 let loadspec_of_arg arg =
@@ -228,10 +235,10 @@ let () =
     misuse "Only one mapping can be loaded from standard input.";
 
   Lwt_main.run begin
-    let%lwt mw =
+    let* mw =
       Mwapi_lwt.open_api ?cert:!opt_cert ?certkey:!opt_certkey
                          ~load_cookies:!opt_persist_cookies api in
-    let%lwt subst =
+    let* subst =
       Lwt_list.fold_left_s
         (fun subst ->
           function
@@ -247,17 +254,19 @@ let () =
           | `Set (x, tmpl) ->
             Lwt.return (String_map.add x (Template.subst_map subst tmpl) subst))
         String_map.empty !opt_subst in
-    try%lwt
-      begin match !opt_login with
-      | None -> Lwt.return_unit
-      | Some (_ as name, password) -> Utils.login ~name ~password mw
-      end >>= fun () ->
-      edit ~do_replace:!opt_replace ~page:(`Title page) ~target subst mw
-        >>= fun () ->
-      Mwapi_lwt.close_api ~save_cookies:!opt_persist_cookies mw
-    with
-    | Wiki_error {wiki_error_code; wiki_error_info; _} ->
-      Log.err (fun f -> f "%s - %s" wiki_error_code wiki_error_info)
-    | Http_error {http_error_code; http_error_info; _} ->
-      Log.err (fun f -> f "HTTP %d - %s" http_error_code http_error_info)
+    Lwt.catch
+      (fun () ->
+        begin match !opt_login with
+        | None -> Lwt.return_unit
+        | Some (_ as name, password) -> Utils.login ~name ~password mw
+        end >>= fun () ->
+        edit ~do_replace:!opt_replace ~page:(`Title page) ~target subst mw
+          >>= fun () ->
+        Mwapi_lwt.close_api ~save_cookies:!opt_persist_cookies mw)
+      (function
+       | Wiki_error {wiki_error_code; wiki_error_info; _} ->
+          Log.err (fun f -> f "%s - %s" wiki_error_code wiki_error_info)
+       | Http_error {http_error_code; http_error_info; _} ->
+          Log.err (fun f -> f "HTTP %d - %s" http_error_code http_error_info)
+       | exn -> Lwt.fail exn)
   end

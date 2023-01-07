@@ -1,4 +1,4 @@
-(* Copyright (C) 2013--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2013--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,6 +17,7 @@
 open Cohttp_lwt_unix
 open Kojson_pattern
 open Lwt.Infix
+open Lwt.Syntax
 open Mwapi
 open Unprime
 open Unprime_option
@@ -61,7 +62,7 @@ let open_api ?cert ?certkey ?(load_cookies = false)
      | None, Some cert | Some cert, None -> make_context cert cert
      | Some cert, Some certkey -> make_context cert certkey)
   in
-  let%lwt origin = Lwt.wrap1 Mwapi_cookiejar.uri_origin endpoint in
+  let* origin = Lwt.wrap1 Mwapi_cookiejar.uri_origin endpoint in
   let cookiejar = Mwapi_cookiejar.create () in
   begin
     if not load_cookies then Lwt.return_unit else
@@ -76,7 +77,7 @@ let open_api ?cert ?certkey ?(load_cookies = false)
 
 let close_api ?(save_cookies = false) {endpoint; cookiejar; _} =
   (* TODO: Expire cookies *)
-  let%lwt origin = Lwt.wrap1 Mwapi_cookiejar.uri_origin endpoint in
+  let* origin = Lwt.wrap1 Mwapi_cookiejar.uri_origin endpoint in
   begin
     if not save_cookies then Lwt.return_unit else
     let fp = Mwapi_cookiejar.persistence_path ~origin () in
@@ -89,7 +90,7 @@ let with_api
       ?cert ?certkey
       ?(load_cookies = false) ?(save_cookies = load_cookies)
       endpoint f =
-  let%lwt mw = open_api ?cert ?certkey ~load_cookies endpoint in
+  let* mw = open_api ?cert ?certkey ~load_cookies endpoint in
   Lwt.finalize (fun () -> f mw) (fun () -> close_api ~save_cookies mw)
 
 let decode_star =
@@ -115,7 +116,7 @@ let make_json_warning_buffer () =
   (warn, emit)
 
 let decode_json resp body =
-  let%lwt body_str = Cohttp_lwt.Body.to_string body in
+  let* body_str = Cohttp_lwt.Body.to_string body in
   let warn, emit_json_warnings = make_json_warning_buffer () in
 
   match Response.status resp with
@@ -165,7 +166,7 @@ let get_json params {ctx; endpoint; cookiejar} =
   let headers = Cohttp.Header.of_list [cookies_hdr] in
   log_headers headers >>= fun () ->
   Log.debug (fun f -> f "GETting %a." Uri.pp uri) >>= fun () ->
-  let%lwt resp, body = Client.get ?ctx ~headers uri in
+  let* resp, body = Client.get ?ctx ~headers uri in
   Mwapi_cookiejar.extract endpoint (Cohttp.Response.headers resp) cookiejar;
   decode_json resp body
 
@@ -182,7 +183,7 @@ let post_json params {ctx; endpoint; cookiejar} =
   log_headers headers >>= fun () ->
   Log.debug (fun f -> f "POSTing to %a: %s" Uri.pp endpoint postdata)
     >>= fun () ->
-  let%lwt resp, body = Client.post ?ctx ~headers ~body endpoint in
+  let* resp, body = Client.post ?ctx ~headers ~body endpoint in
   Mwapi_cookiejar.extract endpoint (Cohttp.Response.headers resp) cookiejar;
   decode_json resp body
 
