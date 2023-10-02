@@ -22,6 +22,8 @@ open Mwapi
 open Unprime
 open Unprime_option
 
+let ( let*? ) = Lwt_result.Syntax.( let* )
+
 let log_src = Logs.Src.create "mwapi"
 module Log = (val Logs_lwt.src_log log_src)
 
@@ -41,13 +43,12 @@ let rec mkdir_rec dir =
   Lwt.catch
     (fun () -> Lwt_unix.stat dir >|= ignore)
     (function
-      | Unix.Unix_error (Unix.ENOENT, _, _) ->
+     | Unix.Unix_error (Unix.ENOENT, _, _) ->
         mkdir_rec (Filename.dirname dir) >>= fun () ->
         Lwt_unix.mkdir dir 0o755
-      | xc -> Lwt.fail xc)
+     | xc -> Lwt.fail xc)
 
-let open_api ?cert ?certkey ?(load_cookies = false)
-             endpoint =
+let open_api_exn ?cert ?certkey ?(load_cookies = false) endpoint =
   (match Uri.scheme endpoint with Some "https" -> Ssl.init () | _ -> ());
   let make_context cert certkey =
     (* FIXME: TLS client authentication is not cleanly supported in Conduit yet,
@@ -75,23 +76,39 @@ let open_api ?cert ?certkey ?(load_cookies = false)
   end >>= fun () ->
   Lwt.return {ctx; endpoint; cookiejar}
 
-let close_api ?(save_cookies = false) {endpoint; cookiejar; _} =
+let open_api ?cert ?certkey ?load_cookies endpoint =
+  (* TODO: Sort out exceptions. *)
+  Lwt.catch
+    (fun () -> open_api_exn ?cert ?certkey ?load_cookies endpoint >|= Result.ok)
+    (function
+     | Failure msg -> Lwt.return_error (`Msg msg)
+     | exn -> Lwt.fail exn)
+
+let close_api_exn ?(save_cookies = false) {endpoint; cookiejar; _} =
   (* TODO: Expire cookies *)
   let* origin = Lwt.wrap1 Mwapi_cookiejar.uri_origin endpoint in
-  begin
-    if not save_cookies then Lwt.return_unit else
-    let fp = Mwapi_cookiejar.persistence_path ~origin () in
-    mkdir_rec (Filename.dirname fp) >>= fun () ->
-    Lwt_io.with_file ~mode:Lwt_io.output fp
-      (fun oc -> Cookiejar_io.write ~origin oc cookiejar)
-  end
+  if not save_cookies then Lwt.return_unit else
+  let fp = Mwapi_cookiejar.persistence_path ~origin () in
+  let* () = mkdir_rec (Filename.dirname fp) in
+  Lwt_io.with_file ~mode:Lwt_io.output fp
+    (fun oc -> Cookiejar_io.write ~origin oc cookiejar)
+
+let close_api ?save_cookies mw =
+  (* TODO: Sort out exceptions. *)
+  Lwt.catch
+    (fun () -> close_api_exn ?save_cookies mw >|= Result.ok)
+    (function
+     | Failure msg -> Lwt.return_error (`Msg msg)
+     | exn -> Lwt.fail exn)
 
 let with_api
       ?cert ?certkey
       ?(load_cookies = false) ?(save_cookies = load_cookies)
       endpoint f =
-  let* mw = open_api ?cert ?certkey ~load_cookies endpoint in
-  Lwt.finalize (fun () -> f mw) (fun () -> close_api ~save_cookies mw)
+  let*? mw = open_api ?cert ?certkey ~load_cookies endpoint in
+  Lwt.finalize
+    (fun () -> f mw)
+    (fun () -> close_api ~save_cookies mw >|= ignore)
 
 let decode_star =
   K.assoc begin
@@ -187,7 +204,7 @@ let post_json params {ctx; endpoint; cookiejar} =
   Mwapi_cookiejar.extract endpoint (Cohttp.Response.headers resp) cookiejar;
   decode_json resp body
 
-let call {request_method; request_params; request_decode} mw =
+let call_exn {request_method; request_params; request_decode} mw =
   (match request_method with
    | `GET -> get_json
    | `POST -> post_json) request_params mw >>= fun json ->
@@ -195,3 +212,10 @@ let call {request_method; request_params; request_decode} mw =
   let result = Kojson.jin_of_json ~warn json
             |> K.assoc_or_null (request_decode %> uncurry Ka.stop) in
   emit_json_warnings () >>= fun () -> Lwt.return result
+
+let call op mw =
+  Lwt.catch (fun () -> call_exn op mw >|= Result.ok)
+    (function
+     | Http_error err -> Lwt.return_error (`Http_error err)
+     | Wiki_error err -> Lwt.return_error (`Wiki_error err)
+     | exn -> Lwt.fail exn)

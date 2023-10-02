@@ -34,6 +34,11 @@ type edit_target =
   | Edit_page
   | Edit_section of int * string * insertion_point list
 
+type edit_mode =
+  | Create_if_missing
+  | Create_or_modify
+  | Create_or_replace
+
 let find_section level tt =
   let open Mwapi_parse in
   List.find_map
@@ -52,57 +57,78 @@ let break_after s =
   if String.length s = 0 || String.has_suffix "\n\n" s then s else
   if String.has_suffix "\n" s then s ^ "\n" else s ^ "\n\n"
 
-let find_insertion_point level ipt sections_result =
-  match ipt with
-  | Before_section tt ->
-    Option.map (fun i -> i, (fun s -> `Prepend (break_after s)))
-               (find_section level tt sections_result)
-  | After_section tt ->
-    Option.map (fun i -> i, (fun s -> `Append ("\n\n" ^ s)))
-               (find_section level tt sections_result)
-  | Bottom_of_section tt ->
-    Option.map (fun i -> i, (fun s -> `Append ("\n\n" ^ s)))
-               (find_section (level - 1) tt sections_result)
+let resolve_insertion_point level sections = function
+ | Before_section tt ->
+    find_section level tt sections
+      |> Option.map (fun i -> i, (fun s -> `Prepend (break_after s)))
+ | After_section tt ->
+    find_section level tt sections
+      |> Option.map (fun i -> i, (fun s -> `Append ("\n\n" ^ s)))
+ | Bottom_of_section tt ->
+    find_section (level - 1) tt sections
+      |> Option.map (fun i -> i, (fun s -> `Append ("\n\n" ^ s)))
 
-let edit ?(do_replace = false) ~page ~target subst mw =
-  let* create, section, tmpl, make_op =
-    match target with
-    | Edit_section (secn_level, secn_title, ipts) ->
-      let* r = Mwapi_lwt.call Mwapi_parse.(parse ~page sections) mw in
-      begin match find_section secn_level secn_title r with
-      | Some i ->
-        Mwapi_lwt.call Mwapi_parse.(parse ~page ~section:i wikitext) mw
-          >|= fun s ->
-        let tmpl = if do_replace then new_section secn_level secn_title
-                                 else Template.of_string s in
-        (`May_not, Some (`No i), tmpl, (fun s -> `Replace s))
-      | None ->
-        begin match
-          List.find_map (fun ipt -> find_insertion_point secn_level ipt r) ipts
-        with
-        | Some (i, op) ->
+let edit_page ~edit_mode ~page mw =
+  (match edit_mode with
+   | Create_if_missing ->
+      Lwt.return_ok (`Must, None, new_page, (fun s -> `Replace s))
+   | Create_or_replace ->
+      Lwt.return_ok (`May, None, new_page, (fun s -> `Replace s))
+   | Create_or_modify ->
+      Mwapi_lwt.call Mwapi_parse.(parse ~page wikitext) mw >|=
+      (function
+       | Ok content ->
+          let tmpl = Template.of_string content in
+          Ok (`May_not, None, tmpl, (fun s -> `Replace s))
+       | Error (`Wiki_error {wiki_error_code = "missingtitle"; _}) ->
+          Ok (`Must, None, new_page, (fun s -> `Replace s))
+       | Error _ as res -> res))
+
+let edit_section ~edit_mode ~page ~secn_level ~secn_title ~ipts mw =
+  let*? sections = Mwapi_lwt.call Mwapi_parse.(parse ~page sections) mw in
+  (match find_section secn_level secn_title sections with
+   | Some secn_no ->
+      let*? section_content =
+        Mwapi_lwt.call
+          Mwapi_parse.(parse ~page ~section:secn_no wikitext) mw
+      in
+      (match edit_mode with
+       | Create_if_missing ->
+          let* () = Log.info (fun f -> f "Section already exists.") in
+          Lwt.return_error `Section_exists
+       | Create_or_replace ->
+          let* () = Log.info (fun f -> f "Replacing existing section.") in
           let tmpl = new_section secn_level secn_title in
-          Lwt.return (`May_not, Some (`No i), tmpl, op)
-        | None ->
-          Lwt.fail (Failure "Could not locate section to edit or place to \
-                             insert it.")
-        end
-      end
-    | Edit_page ->
-      Lwt.catch
-        (fun () ->
-          if do_replace then
-            Lwt.return (`May, None, new_page, (fun s -> `Replace s))
-          else
-            Mwapi_lwt.call Mwapi_parse.(parse ~page wikitext) mw >|= fun s ->
-            (`May_not, None, Template.of_string s, (fun s -> `Replace s)))
-        (function
-         | Wiki_error {wiki_error_code = "missingtitle"; _} ->
-            Lwt.return (`Must, None, new_page, (fun s -> `Replace s))
-         | exn -> Lwt.fail exn)
+          Lwt.return_ok
+            (`May_not, Some (`No secn_no), tmpl, (fun s -> `Replace s))
+       | Create_or_modify ->
+          let* () = Log.info (fun f -> f "Modifying existing section.") in
+          let tmpl = Template.of_string section_content in
+          Lwt.return_ok
+            (`May_not, Some (`No secn_no), tmpl, (fun s -> `Replace s)))
+   | None ->
+      (match
+        List.find_map (resolve_insertion_point secn_level sections) ipts
+       with
+       | Some (secn_no, op) ->
+          let+ () = Log.info (fun f -> f "Adding section.") in
+          let tmpl = new_section secn_level secn_title in
+          Ok (`May_not, Some (`No secn_no), tmpl, op)
+       | None ->
+          Lwt.return_error `Section_missing))
+
+let edit ?(edit_mode = Create_or_modify) ~page ~target subst mw =
+  let*? token = Utils.get_edit_token mw in
+  let*? create, section, tmpl, make_op =
+    (match target with
+     | Edit_section (secn_level, secn_title, ipts) ->
+        edit_section ~edit_mode ~page ~secn_level ~secn_title ~ipts mw
+     | Edit_page ->
+        edit_page ~edit_mode ~page mw)
   in
+  Lwt_io.printl "Sleeping" >>= fun () ->
+  Lwt_unix.sleep 20.0 >>= fun () ->
   let tmpl = Template.subst_map subst tmpl in
-  let* token = Utils.get_edit_token mw in
   let op = make_op (Template.to_string tmpl) in
   Utils.call_edit Mwapi_edit.(edit ~token ~page ~create ?section ~op ()) mw
 
@@ -155,6 +181,20 @@ let loadspec_of_arg arg =
   | None -> `Load arg
   | Some (x, fp) -> `Load_from (x, fp)
 
+let report_error ~edit_mode = function
+ | Ok () | Error `Section_exists | Error `Page_exists ->
+    Lwt.return 0
+ | Error `Section_missing ->
+    Log.err (fun f -> f "Cannot find section to edit or place to insert it.")
+      >|= fun () -> 66
+ | Error (`Wiki_error {wiki_error_code = "articleexists"; _})
+   when edit_mode = Create_if_missing ->
+    Log.info (fun f -> f "Page already exists.")
+      >|= fun () -> 0
+ | Error (#Mwapi.error as err) ->
+    Log.err (fun f -> f "%a" Mwapi.pp_error err)
+      >|= fun () -> 69
+
 let () =
   setup_logging ();
   let opt_api = ref None in
@@ -164,7 +204,7 @@ let () =
   let opt_page = ref None in
   let opt_level = ref None in
   let opt_section = ref None in
-  let opt_replace = ref false in
+  let opt_edit_mode = ref Create_or_modify in
   let opt_ipts = ref [] in
   let opt_subst = ref [] in
   let opt_includes = ref [] in
@@ -196,8 +236,12 @@ let () =
       Arg.String (fun tt -> opt_ipts := Bottom_of_section tt :: !opt_ipts),
       "<title> If the target section is not found, add it at the bottom of \
        <title>, which is one level above the target section.";
-    "-replace", Arg.Unit (fun () -> opt_replace := true),
-      " Replace the given section or page if it exists. Be careful!";
+    "-create", Arg.Unit (fun () -> opt_edit_mode := Create_if_missing),
+      " Create a new page or section if it does not exist, \
+        otherwise do nothing. This is incompatible with -replace.";
+    "-replace", Arg.Unit (fun () -> opt_edit_mode := Create_or_replace),
+      " Replace the given section or page if it exists. Be careful! \
+        This is incompatible with -create.";
     "-s", Arg.String (fun s -> opt_subst := `Set(subst_of_arg s) :: !opt_subst),
       "<x>=<tmpl> Substitute <tmpl> for <x>.";
     "-i", Arg.String (fun s -> opt_subst := `Load_stdin s :: !opt_subst),
@@ -234,10 +278,12 @@ let () =
                 !opt_subst > 1 then
     misuse "Only one mapping can be loaded from standard input.";
 
-  Lwt_main.run begin
-    let* mw =
-      Mwapi_lwt.open_api ?cert:!opt_cert ?certkey:!opt_certkey
-                         ~load_cookies:!opt_persist_cookies api in
+  begin
+    let*? mw =
+      Mwapi_lwt.open_api
+        ?cert:!opt_cert ?certkey:!opt_certkey
+        ~load_cookies:!opt_persist_cookies api
+    in
     let* subst =
       Lwt_list.fold_left_s
         (fun subst ->
@@ -253,20 +299,15 @@ let () =
             String_map.add x (Template.subst_map subst tmpl) subst
           | `Set (x, tmpl) ->
             Lwt.return (String_map.add x (Template.subst_map subst tmpl) subst))
-        String_map.empty !opt_subst in
-    Lwt.catch
-      (fun () ->
-        begin match !opt_login with
-        | None -> Lwt.return_unit
-        | Some (_ as name, password) -> Utils.login ~name ~password mw
-        end >>= fun () ->
-        edit ~do_replace:!opt_replace ~page:(`Title page) ~target subst mw
-          >>= fun () ->
-        Mwapi_lwt.close_api ~save_cookies:!opt_persist_cookies mw)
-      (function
-       | Wiki_error {wiki_error_code; wiki_error_info; _} ->
-          Log.err (fun f -> f "%s - %s" wiki_error_code wiki_error_info)
-       | Http_error {http_error_code; http_error_info; _} ->
-          Log.err (fun f -> f "HTTP %d - %s" http_error_code http_error_info)
-       | exn -> Lwt.fail exn)
-  end
+        String_map.empty !opt_subst
+    in
+    let*? () =
+      (match !opt_login with
+       | None -> Lwt.return_ok ()
+       | Some (_ as name, password) -> Utils.login ~name ~password mw)
+    in
+    let*? () =
+      edit ~edit_mode:!opt_edit_mode ~page:(`Title page) ~target subst mw
+    in
+    Mwapi_lwt.close_api ~save_cookies:!opt_persist_cookies mw
+  end >>= report_error ~edit_mode:!opt_edit_mode |> Lwt_main.run |> exit

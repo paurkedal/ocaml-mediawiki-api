@@ -21,18 +21,20 @@ type client
 val open_api :
   ?cert: string -> ?certkey: string ->
   ?load_cookies: bool ->
-  Uri.t -> client Lwt.t
+  Uri.t -> (client, [> error]) Lwt_result.t
 
 val close_api :
   ?save_cookies: bool ->
-  client -> unit Lwt.t
+  client -> (unit, [> error]) Lwt_result.t
 
 val with_api :
   ?cert: string -> ?certkey: string ->
   ?load_cookies: bool ->
   ?save_cookies: bool ->
-  Uri.t -> (client -> 'a Lwt.t) -> 'a Lwt.t
+  Uri.t -> (client -> ('a, 'e) Lwt_result.t) ->
+  ('a, ([> error] as 'e)) Lwt_result.t
 
 val get_json : (string * string) list -> client -> json Lwt.t
 val post_json : (string * string) list -> client -> json Lwt.t
-val call : 'a request -> client -> 'a Lwt.t
+
+val call : 'a request -> client -> ('a, [> Mwapi.error]) Lwt_result.t

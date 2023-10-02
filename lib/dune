@@ -36,8 +36,3 @@
     ssl
     xdg-basedir
     yojson))
-
-(rule
-  (targets mwapi.ml)
-  (deps mwapi.mli)
-  (action (copy mwapi.mli mwapi.ml)))

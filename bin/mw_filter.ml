@@ -75,62 +75,73 @@ type filter_config = {
   fc_actions : filter_action Int_map.t * filter_action;
 }
 
+let find_filter_action ec fc =
+  try Int_map.find ec (fst fc.fc_actions)
+  with Not_found -> snd fc.fc_actions
+
 let filter_text ~fc text =
   let res = ref "" in
   Lwt_process.with_process_full fc.fc_command begin fun process ->
     let writer =
-      Lwt_io.write process#stdin text >>= fun () ->
-      Lwt_io.close process#stdin in
-    let reader = Lwt_io.read process#stdout >|= fun s -> res := s in
+      let* () = Lwt_io.write process#stdin text in
+      Lwt_io.close process#stdin
+    in
+    let reader =
+      let+ s = Lwt_io.read process#stdout in
+      res := s
+    in
     let logger =
-      Lwt_stream.iter_s (Lwt_io.eprintlf "<stderr> %s")
-                        (Lwt_io.read_lines process#stderr) in
-    Lwt.join [writer; reader; logger] >>= fun () ->
-    process#status >>= function
-    | Unix.WEXITED ec ->
-      begin match
-        try Int_map.find ec (fst fc.fc_actions)
-        with Not_found -> snd fc.fc_actions
-      with
-      | `Commit -> Lwt.return (`Replace !res)
-      | `Skip -> Lwt.return `Skip
-      | `Fail -> fail_f "Subprocess exited with %d" ec
-      end
-    | Unix.WSIGNALED sn | Unix.WSTOPPED sn ->
-      fail_f "Subprocess received signal %d" sn
+      Lwt_stream.iter_s
+        (Lwt_io.eprintlf "<stderr> %s")
+        (Lwt_io.read_lines process#stderr)
+    in
+    let* () = Lwt.join [writer; reader; logger] in
+    process#status >|= function
+     | Unix.WEXITED ec ->
+        (match find_filter_action ec fc with
+         | `Commit -> Ok (`Replace !res)
+         | `Skip -> Ok `Skip
+         | `Fail -> Fmt.error_msg "Subprocess exited with %d" ec)
+     | Unix.WSIGNALED sn | Unix.WSTOPPED sn ->
+        Fmt.error_msg "Subprocess received signal %d" sn
   end
 
 let filter_page ~fc ~page mw =
-  let* text = Mwapi_lwt.call Mwapi_parse.(parse ~page wikitext) mw in
-  filter_text ~fc text >>= function
-  | `Skip ->
-    Log.info (fun f -> f "Skipping due to exit code.")
-  | `Replace text' when text' = text ->
-    Log.info (fun f -> f "No changes to write back.")
-  | `Replace _ as op ->
-    let* token = Utils.get_edit_token mw in
-    Utils.call_edit
-      Mwapi_edit.(edit ~token ~page ~create:`May_not ~recreate:`May_not ~op ())
-      mw
+  let*? text = Mwapi_lwt.call Mwapi_parse.(parse ~page wikitext) mw in
+  filter_text ~fc text >>=? function
+   | `Skip ->
+      Log.info (fun f -> f "Skipping due to exit code.") >|= Result.ok
+   | `Replace text' when text' = text ->
+      Log.info (fun f -> f "No changes to write back.") >|= Result.ok
+   | `Replace _ as op ->
+      let*? token = Utils.get_edit_token mw in
+      Utils.call_edit
+        Mwapi_edit.(edit ~token ~page ~create:`May_not ~recreate:`May_not ~op ())
+        mw
+
+let report_error = function
+ | Ok () -> Lwt.return 0
+ | Error err -> let+ () = Log.err (fun f -> f "%a" Mwapi.pp_error err) in 69
 
 let main api login page_title actions cmd persist_cookies =
   let page = `Title page_title in
-  match cmd with
-  | [] -> exit 0
-  | (prog :: _) ->
-    let fc = {
-      fc_command = prog, Array.of_list cmd;
-      fc_actions = actions;
-    } in
-    Lwt_main.run begin
-      let* mw = Mwapi_lwt.open_api ~load_cookies:persist_cookies api in
-      begin match login with
-      | None -> Lwt.return_unit
-      | Some (_ as name, password) -> Utils.login ~name ~password mw
-      end >>= fun () ->
-      filter_page ~fc ~page mw >>= fun () ->
-      Mwapi_lwt.close_api ~save_cookies:persist_cookies mw
-    end
+  (match cmd with
+   | [] ->
+      Lwt.return_ok ()
+   | (prog :: _) ->
+      let fc = {
+        fc_command = prog, Array.of_list cmd;
+        fc_actions = actions;
+      } in
+      let*? mw = Mwapi_lwt.open_api ~load_cookies:persist_cookies api in
+      let*? () =
+        (match login with
+         | None -> Lwt.return_ok ()
+         | Some (_ as name, password) -> Utils.login ~name ~password mw)
+      in
+      let*? () = filter_page ~fc ~page mw in
+      Mwapi_lwt.close_api ~save_cookies:persist_cookies mw)
+  >>= report_error |> Lwt_main.run
 
 let () =
   setup_logging ();
@@ -173,4 +184,4 @@ let () =
     `P "would run the main page though a sed script.";
   ] in
   let cmd = Cmd.v (Cmd.info ~doc ~man "mw-filter") main_t in
-  exit (Cmd.eval cmd)
+  exit (Cmd.eval' cmd)

@@ -17,20 +17,33 @@
 type json = Yojson.Basic.t
 
 type http_error = {
-  http_error_code : int;
-  http_error_info : string;
+  http_error_code: int;
+  http_error_info: string;
 }
+
+let pp_http_error =
+  let open Fmt in
+  const string "HTTP " ++
+  using (fun e -> e.http_error_code) int ++ sp ++
+  using (fun e -> e.http_error_info) string
 
 type wiki_error = {
-  wiki_error_code : string;
-  wiki_error_info : string;
-  wiki_error_details : string option
+  wiki_error_code: string;
+  wiki_error_info: string;
+  wiki_error_details: string option
 }
 
+let pp_wiki_error =
+  let open Fmt in
+  using (fun e -> e.wiki_error_code) string ++ sp ++
+  using (fun e -> e.wiki_error_info) string ++
+  using (fun e -> e.wiki_error_details)
+    (option (const string ":" ++ sp ++ string))
+
 type 'a request = {
-  request_method : [`GET | `POST];
-  request_params : (string * string) list;
-  request_decode : Kojson.jain -> 'a * Kojson.jain;
+  request_method: [`GET | `POST];
+  request_params: (string * string) list;
+  request_decode: Kojson.jain -> 'a * Kojson.jain;
 }
 
 type error = [
@@ -39,7 +52,10 @@ type error = [
   | `Msg of string
 ]
 
-val pp_error : error Fmt.t
+let pp_error ppf = function
+ | `Http_error err -> pp_http_error ppf err
+ | `Wiki_error err -> pp_wiki_error ppf err
+ | `Msg msg -> Fmt.string ppf msg
 
 exception Http_error of http_error
 exception Wiki_error of wiki_error
