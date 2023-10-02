@@ -27,8 +27,8 @@ val pass_opt : ('a -> string) -> string -> 'a option -> params -> params
 val pass_list : ('a -> string) -> string -> 'a list -> params -> params
 val pass_if : string -> bool -> params -> params
 
-val caltime_of_string : string -> CalendarLib.Calendar.t
-val string_of_caltime : CalendarLib.Calendar.t -> string
+val ptime_of_string_exn : string -> Ptime.t
+val string_of_ptime : Ptime.t -> string
 
 module K_repair : sig
   open Kojson

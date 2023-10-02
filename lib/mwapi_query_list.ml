@@ -127,9 +127,10 @@ module Aiprop = struct
 
   open Kojson_pattern
 
-  let timestamp =
-    { keys = "timestamp";
-      decode = "timestamp"^: K.convert_string "time" caltime_of_string %> pair }
+  let timestamp = {
+    keys = "timestamp";
+    decode = "timestamp"^: K.convert_string "time" ptime_of_string_exn %> pair;
+  }
   let user = {keys = "user"; decode = "user"^: K.string %> pair}
   let userid = {keys = "userid"; decode = "userid"^: K_repair.int %> pair}
   let comment = {keys = "comment"; decode = "comment"^: K.string %> pair}
@@ -191,8 +192,8 @@ let allimages
     |> Option.fold (Qparams.add "aifrom") start
     |> Option.fold (Qparams.add "aistop") stop
     |> Option.fold (Qparams.add "aicontinue") continue
-    |> Option.fold (Qparams.add "aistart" % string_of_caltime) tstart
-    |> Option.fold (Qparams.add "aiend" % string_of_caltime) tstop
+    |> Option.fold (Qparams.add "aistart" % string_of_ptime) tstart
+    |> Option.fold (Qparams.add "aiend" % string_of_ptime) tstop
     |> Option.fold (Qparams.add "aiprefix") prefix
     |> Option.fold (Qparams.add "aiminsize" % string_of_int) minsize
     |> Option.fold (Qparams.add "aimaxsize" % string_of_int) maxsize

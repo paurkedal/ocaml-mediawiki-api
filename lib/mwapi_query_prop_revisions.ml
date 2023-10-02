@@ -105,7 +105,7 @@ module Rvprop = struct
     let ids = Some "ids", decode_ids
     let flags = Some "flags", decode_flags
     let timestamp = Some "timestamp",
-      decode (K.convert_string "time" caltime_of_string) "timestamp"
+      decode (K.convert_string "time" ptime_of_string_exn) "timestamp"
     let user = Some "user", decode K.string "user"
     let userid = Some "userid", decode K.int "userid"
     let size = Some "size", decode K.int "size"
@@ -177,8 +177,8 @@ let revisions
     |> Option.fold (Qparams.add "rvlimit" % string_of_int) limit
     |> Option.fold (Qparams.add "rvstartid" % string_of_int) startid
     |> Option.fold (Qparams.add "rvendid" % string_of_int) stopid
-    |> Option.fold (Qparams.add "rvstart" % string_of_caltime) tstart
-    |> Option.fold (Qparams.add "rvend" % string_of_caltime) tstop
+    |> Option.fold (Qparams.add "rvstart" % string_of_ptime) tstart
+    |> Option.fold (Qparams.add "rvend" % string_of_ptime) tstop
     |> (match dir with `Newer -> Qparams.add "rvdir" "newer" | `Older -> ident)
     |> Option.fold (Qparams.add "rvuser") user
     |> Option.fold (Qparams.add "rvexcludeuser") excludeuser

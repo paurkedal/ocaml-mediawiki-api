@@ -38,9 +38,15 @@ let pass_list conv label xs params =
 let pass_if label cond params =
   if cond then (label, "") :: params else params
 
-let mw_time_format = "%Y-%m-%dT%H:%M:%SZ"
-let caltime_of_string = CalendarLib.Printer.Calendar.from_fstring mw_time_format
-let string_of_caltime = CalendarLib.Printer.Calendar.sprint mw_time_format
+(* Mediawiki uses the time format "%Y-%m-%dT%H:%M:%SZ". *)
+
+let ptime_of_string_exn str =
+  (match Ptime.of_rfc3339 str with
+   | Ok (t, _, _) -> t
+   | Error (`RFC3339 (_range, err)) ->
+      Format.kasprintf failwith "%a" Ptime.pp_rfc3339_error err)
+
+let string_of_ptime t = Ptime.to_rfc3339 ~tz_offset_s:0 t
 
 module K_repair = struct
   open Kojson_pattern

@@ -56,7 +56,7 @@ module Rvprop : sig
                 unit, unit, unit, unit, unit, unit) t
     val ids : Reply.ids requested
     val flags : Reply.flags requested
-    val timestamp : CalendarLib.Calendar.t requested
+    val timestamp : Ptime.t requested
     val user : string requested
     val userid : int requested
     val size : int requested
@@ -74,8 +74,8 @@ val revisions :
   ?limit: int ->
   ?startid: int ->
   ?stopid: int ->
-  ?tstart: CalendarLib.Calendar.t ->
-  ?tstop: CalendarLib.Calendar.t ->
+  ?tstart: Ptime.t ->
+  ?tstop: Ptime.t ->
   ?dir: [`Newer | `Older] ->
   ?user: string ->
   ?excludeuser: string ->

@@ -61,7 +61,7 @@ module Aiprop : sig
 
   val (&) : 'a t -> 'b t -> ('a * 'b) t
 
-  val timestamp : CalendarLib.Calendar.t t
+  val timestamp : Ptime.t t
   val user : string t
   val userid : int t
   val comment : string t
@@ -89,8 +89,8 @@ val allimages :
         ?start: string ->
         ?continue: string ->
         ?stop: string ->
-        ?tstart: CalendarLib.Calendar.t ->
-        ?tstop: CalendarLib.Calendar.t ->
+        ?tstart: Ptime.t ->
+        ?tstop: Ptime.t ->
         ?prefix: string ->
         ?minsize: int ->
         ?maxsize: int ->
