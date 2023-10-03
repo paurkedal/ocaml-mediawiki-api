@@ -18,6 +18,7 @@
     Mwapi_query_prop_revisions
     ;; internal
     Mwapi_prereq)
+  (private_modules Mwapi_prereq)
   (preprocess (pps ppx_compose))
   (libraries
     cohttp

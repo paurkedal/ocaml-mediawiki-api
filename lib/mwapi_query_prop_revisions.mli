@@ -45,7 +45,7 @@ module Rvprop : sig
     type flags = {minor: bool}
     type content = {contentformat: string; contentbody: string}
     type slots = content String_map.t
-    include SCHEME with type 'a mode := 'a ident
+    include SCHEME with type 'a mode := 'a
   end
 
   module Request : sig

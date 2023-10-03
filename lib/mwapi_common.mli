@@ -14,8 +14,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-type 'a ident = 'a
-
 module String_map : Prime_map.S with type key = string
 module String_set : Set.S with type elt = string
 

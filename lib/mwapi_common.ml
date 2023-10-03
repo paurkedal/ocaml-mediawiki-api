@@ -17,8 +17,6 @@
 open Unprime
 open Unprime_list
 
-type 'a ident = 'a
-
 module String_map = Prime_map.Make (String)
 module String_set = Set.Make (String)
 
