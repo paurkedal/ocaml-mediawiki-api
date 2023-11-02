@@ -126,8 +126,6 @@ let edit ?(edit_mode = Create_or_modify) ~page ~target subst mw =
      | Edit_page ->
         edit_page ~edit_mode ~page mw)
   in
-  Lwt_io.printl "Sleeping" >>= fun () ->
-  Lwt_unix.sleep 20.0 >>= fun () ->
   let tmpl = Template.subst_map subst tmpl in
   let op = make_op (Template.to_string tmpl) in
   Utils.call_edit Mwapi_edit.(edit ~token ~page ~create ?section ~op ()) mw
