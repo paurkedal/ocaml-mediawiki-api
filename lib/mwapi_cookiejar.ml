@@ -233,10 +233,10 @@ module Make (IO : Cohttp.S.IO) = struct
 
 end
 
-let persistence_path ?(ext = "cookies") ~origin:(domain, port) () =
+let persistence_path ~xdg ?(ext = "cookies") ~origin:(domain, port) () =
   let is_safechar c = Char.is_ascii_alnum c || c = '.' || Char.code c >= 128 in
   if domain = ".." || not (String.for_all is_safechar domain) then
     failwith_f "Unsafe character in domain \"%s\"." domain;
-  let cache_dir = XDGBaseDir.Cache.user_dir () in
+  let cache_dir = Xdg.cache_dir xdg in
   let fn = sprintf "%s:%d.%s" domain port ext in
   List.fold_right Filename.concat [cache_dir; "ocaml-mediawiki-api"] fn

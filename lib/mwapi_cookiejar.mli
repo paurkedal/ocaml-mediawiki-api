@@ -56,4 +56,5 @@ end
 
 module Make (IO : Cohttp.S.IO) : S with module IO = IO
 
-val persistence_path : ?ext: string -> origin: origin -> unit -> string
+val persistence_path :
+  xdg: Xdg.t -> ?ext: string -> origin: origin -> unit -> string

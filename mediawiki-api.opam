@@ -25,7 +25,7 @@ depends: [
   "ptime"
   "ssl"
   "yojson"
-  "xdg-basedir"
+  "xdg"
 ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]

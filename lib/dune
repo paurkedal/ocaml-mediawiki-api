@@ -35,5 +35,5 @@
     prime
     ptime
     ssl
-    xdg-basedir
+    xdg
     yojson))

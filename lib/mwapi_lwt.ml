@@ -36,6 +36,7 @@ type client = {
   ctx: Cohttp_lwt_unix.Client.ctx option;
   endpoint: Uri.t;
   cookiejar: Mwapi_cookiejar.t;
+  cookiejar_path: string;
 }
 
 let rec mkdir_rec dir =
@@ -49,6 +50,7 @@ let rec mkdir_rec dir =
      | xc -> Lwt.fail xc)
 
 let open_api_exn ?cert ?certkey ?(load_cookies = false) endpoint =
+  let xdg = Xdg.create ~env:Sys.getenv_opt () in
   (match Uri.scheme endpoint with Some "https" -> Ssl.init () | _ -> ());
   let make_context cert certkey =
     (* FIXME: TLS client authentication is not cleanly supported in Conduit yet,
@@ -65,32 +67,33 @@ let open_api_exn ?cert ?certkey ?(load_cookies = false) endpoint =
   in
   let* origin = Lwt.wrap1 Mwapi_cookiejar.uri_origin endpoint in
   let cookiejar = Mwapi_cookiejar.create () in
+  let cookiejar_path = Mwapi_cookiejar.persistence_path ~xdg ~origin () in
   begin
     if not load_cookies then Lwt.return_unit else
-    let fp = Mwapi_cookiejar.persistence_path ~origin () in
     Lwt.catch
       (fun () ->
-        Lwt_io.with_file ~mode:Lwt_io.input fp
+        Lwt_io.with_file ~mode:Lwt_io.input cookiejar_path
           (fun ic -> Cookiejar_io.read ~origin ic cookiejar))
       (function _ -> Log.warn (fun f -> f "Contaminated cookie jar."))
   end >>= fun () ->
-  Lwt.return {ctx; endpoint; cookiejar}
+  Lwt.return {ctx; endpoint; cookiejar; cookiejar_path}
 
 let open_api ?cert ?certkey ?load_cookies endpoint =
   (* TODO: Sort out exceptions. *)
   Lwt.catch
-    (fun () -> open_api_exn ?cert ?certkey ?load_cookies endpoint >|= Result.ok)
+    (fun () ->
+      open_api_exn ?cert ?certkey ?load_cookies endpoint >|= Result.ok)
     (function
      | Failure msg -> Lwt.return_error (`Msg msg)
      | exn -> Lwt.fail exn)
 
-let close_api_exn ?(save_cookies = false) {endpoint; cookiejar; _} =
+let close_api_exn
+      ?(save_cookies = false) {endpoint; cookiejar; cookiejar_path; _} =
   (* TODO: Expire cookies *)
   let* origin = Lwt.wrap1 Mwapi_cookiejar.uri_origin endpoint in
   if not save_cookies then Lwt.return_unit else
-  let fp = Mwapi_cookiejar.persistence_path ~origin () in
-  let* () = mkdir_rec (Filename.dirname fp) in
-  Lwt_io.with_file ~mode:Lwt_io.output fp
+  let* () = mkdir_rec (Filename.dirname cookiejar_path) in
+  Lwt_io.with_file ~mode:Lwt_io.output cookiejar_path
     (fun oc -> Cookiejar_io.write ~origin oc cookiejar)
 
 let close_api ?save_cookies mw =
@@ -175,7 +178,7 @@ let log_headers headers =
     (fun ln -> Log.debug (fun f -> f "Header: %s" ln))
     (Cohttp.Header.to_lines headers)
 
-let get_json params {ctx; endpoint; cookiejar} =
+let get_json params {ctx; endpoint; cookiejar; _} =
   let params = ("format", "json") :: params in
   let params = List.map (fun (k, v) -> (k, [v])) params in
   let uri = Uri.with_query endpoint params in
@@ -187,7 +190,7 @@ let get_json params {ctx; endpoint; cookiejar} =
   Mwapi_cookiejar.extract endpoint (Cohttp.Response.headers resp) cookiejar;
   decode_json resp body
 
-let post_json params {ctx; endpoint; cookiejar} =
+let post_json params {ctx; endpoint; cookiejar; _} =
   let params = ("format", "json") :: params in
   let params = List.map (fun (k, v) -> (k, [v])) params in
   let postdata = Uri.encoded_of_query params in
