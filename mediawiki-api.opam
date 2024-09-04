@@ -23,6 +23,7 @@ depends: [
   "ppx_compose"
   "prime"
   "ptime"
+  "sexplib"
   "ssl"
   "yojson"
   "xdg"
