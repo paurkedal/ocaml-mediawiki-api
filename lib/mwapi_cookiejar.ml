@@ -135,6 +135,17 @@ let add uri cookie by_origin =
     scope.cookies <- String_map.add name cookie scope.cookies
   end
 
+type 'a sink = Sink of ('a -> unit)
+
+let populate origin by_origin =
+  let by_path = tread_origin origin by_origin in
+  Sink begin fun sch ->
+    let name = fst (Set_cookie_hdr.cookie sch) in
+    let path = Option.get_or "/" (Set_cookie_hdr.path sch) in
+    let scope = tread_path path by_path in
+    scope.cookies <- String_map.add name sch scope.cookies
+  end
+
 let extract uri hdr by_origin =
   (* Workaround for https://github.com/mirage/ocaml-cohttp/issues/855 *)
   let hdr = hdr
@@ -176,62 +187,6 @@ let iter ?origin f by_origin =
   | Some origin ->
     try iter_by_path (Hashtbl.find by_origin origin)
     with Not_found -> ()
-
-module type S = sig
-  module IO : Cohttp.S.IO
-
-  val write : origin: origin -> IO.oc -> t -> unit IO.t
-  val read : origin: origin -> IO.ic -> t -> unit IO.t
-end
-
-module Make (IO : Cohttp.S.IO) = struct
-
-  module IO = IO
-  let (>>=) = IO.(>>=)
-  let (>|=) m f = m >>= fun x -> IO.return (f x)
-
-  let rec write_lines oc = function
-   | [] -> IO.return ()
-   | line :: lines ->
-      IO.write oc (line ^ "\n") >>= fun () ->
-      write_lines oc lines
-
-  let read_lines ic =
-    let rec loop acc =
-      IO.read_line ic >>=
-      (function
-       | None -> IO.return acc
-       | Some line -> loop (line :: acc)) in
-    loop []
-
-  (* Should store time and check Max_age here, but MW probably only use session
-   * cookies for the API.  To do this right, customize the cookie type above to
-   * include absolute time of expiration or creation, and maybe remove some
-   * redundant fields. *)
-
-  let write ~origin oc by_origin =
-    let aux sch =
-      (match sch.Set_cookie_hdr.expiration with
-       | `Session -> ident
-       | `Max_age _t ->
-          List.cons (Sexp.to_string (Set_cookie_hdr.sexp_of_t sch))) in
-    write_lines oc (fold ~origin aux by_origin [])
-
-  let read ~origin ic by_origin =
-    read_lines ic >|= fun lines ->
-    let by_path = tread_origin origin by_origin in
-    let aux line =
-      let sch = Set_cookie_hdr.t_of_sexp (Sexp.of_string line) in
-      (match sch.Set_cookie_hdr.expiration with
-       | `Session -> ()
-       | `Max_age _t ->
-          let name = fst (Set_cookie_hdr.cookie sch) in
-          let path = Option.get_or "/" (Set_cookie_hdr.path sch) in
-          let scope = tread_path path by_path in
-          scope.cookies <- String_map.add name sch scope.cookies) in
-    List.iter aux lines
-
-end
 
 let persistence_path ~xdg ?(ext = "cookies") ~origin:(domain, port) () =
   let is_safechar c = Char.is_ascii_alnum c || c = '.' || Char.code c >= 128 in

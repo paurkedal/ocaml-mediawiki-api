@@ -47,14 +47,9 @@ val extract : Uri.t -> Cohttp.Header.t -> t -> unit
 val fold : ?origin: origin -> (cookie -> 'a -> 'a) -> t -> 'a -> 'a
 val iter : ?origin: origin -> (cookie -> unit) -> t -> unit
 
-module type S = sig
-  module IO : Cohttp.S.IO
-
-  val write : origin: origin -> IO.oc -> t -> unit IO.t
-  val read : origin: origin -> IO.ic -> t -> unit IO.t
-end
-
-module Make (IO : Cohttp.S.IO) : S with module IO = IO
-
 val persistence_path :
   xdg: Xdg.t -> ?ext: string -> origin: origin -> unit -> string
+
+(**/**)
+type 'a sink = Sink of ('a -> unit)
+val populate : origin -> t -> cookie sink

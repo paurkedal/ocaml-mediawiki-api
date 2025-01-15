@@ -30,8 +30,6 @@ module Log = (val Logs_lwt.src_log log_src)
 let decode_log_src = Logs.Src.create "mwapi.kojson"
 module Decode_log = (val Logs_lwt.src_log decode_log_src)
 
-module Cookiejar_io = Mwapi_cookiejar.Make (Cohttp_lwt_unix.IO)
-
 type client = {
   ctx: Cohttp_lwt_unix.Client.ctx option;
   endpoint: Uri.t;
@@ -73,7 +71,7 @@ let open_api_exn ?cert ?certkey ?(load_cookies = false) endpoint =
     Lwt.catch
       (fun () ->
         Lwt_io.with_file ~mode:Lwt_io.input cookiejar_path
-          (fun ic -> Cookiejar_io.read ~origin ic cookiejar))
+          (fun ic -> Mwapi_cookiejar_lwt.read ~origin ic cookiejar))
       (function _ -> Log.warn (fun f -> f "Contaminated cookie jar."))
   end >>= fun () ->
   Lwt.return {ctx; endpoint; cookiejar; cookiejar_path}
@@ -94,7 +92,7 @@ let close_api_exn
   if not save_cookies then Lwt.return_unit else
   let* () = mkdir_rec (Filename.dirname cookiejar_path) in
   Lwt_io.with_file ~mode:Lwt_io.output cookiejar_path
-    (fun oc -> Cookiejar_io.write ~origin oc cookiejar)
+    (fun oc -> Mwapi_cookiejar_lwt.write ~origin oc cookiejar)
 
 let close_api ?save_cookies mw =
   (* TODO: Sort out exceptions. *)

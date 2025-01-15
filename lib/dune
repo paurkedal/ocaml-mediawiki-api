@@ -6,6 +6,7 @@
     Mwapi
     Mwapi_common
     Mwapi_cookiejar
+    Mwapi_cookiejar_lwt
     Mwapi_lwt
     Mwapi_createaccount
     Mwapi_edit
