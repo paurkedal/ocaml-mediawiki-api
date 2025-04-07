@@ -47,21 +47,30 @@ let rec mkdir_rec dir =
         Lwt_unix.mkdir dir 0o755
      | xc -> Lwt.fail xc)
 
+let () =
+  Sys.getenv_opt "MWAPI_TLS_LIBRARY" |> Option.iter begin function
+   | "native" -> Conduit_lwt_unix.(tls_library := Native)
+   | "openssl" | "OpenSSL" -> Conduit_lwt_unix.(tls_library := OpenSSL)
+   | str -> Fmt.failwith "Invalid value %s for $MWAPI_TLS_LIBRARY." str
+  end
+
 let open_api_exn ?cert ?certkey ?(load_cookies = false) endpoint =
   let xdg = Xdg.create ~env:Sys.getenv_opt () in
-  (match Uri.scheme endpoint with Some "https" -> Ssl.init () | _ -> ());
   let make_context cert certkey =
-    (* FIXME: TLS client authentication is not cleanly supported in Conduit yet,
-     * but this works when using OpenSSL: *)
-    Conduit_lwt_unix.(tls_library := OpenSSL);
-    Ssl.use_certificate Conduit_lwt_unix_ssl.Client.default_ctx cert certkey;
-    None
+    let tls_own_key =
+      `TLS (`Crt_file_path cert, `Key_file_path certkey, `No_password)
+    in
+    let+ ctx = Conduit_lwt_unix.init ~tls_own_key () in
+    Cohttp_lwt_unix.Net.init ~ctx ()
   in
-  let ctx =
+  let* ctx =
     (match cert, certkey with
-     | None, None -> None
-     | None, Some cert | Some cert, None -> make_context cert cert
-     | Some cert, Some certkey -> make_context cert certkey)
+     | None, None ->
+        Lwt.return_none
+     | None, Some cert | Some cert, None ->
+        Option.some =|< make_context cert cert
+     | Some cert, Some certkey ->
+        Option.some =|< make_context cert certkey)
   in
   let* origin = Lwt.wrap1 Mwapi_cookiejar.uri_origin endpoint in
   let cookiejar = Mwapi_cookiejar.create () in

@@ -15,6 +15,7 @@ depends: [
   "conduit-lwt"
   "conduit-lwt-unix"
   "dune"
+  "fmt"
   "kojson"
   "logs"
   "lwt"
