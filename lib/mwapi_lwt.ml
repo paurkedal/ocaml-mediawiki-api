@@ -228,4 +228,5 @@ let call op mw =
     (function
      | Http_error err -> Lwt.return_error (`Http_error err)
      | Wiki_error err -> Lwt.return_error (`Wiki_error err)
+     | Yojson.Json_error err -> Lwt.return_error (`Msg err)
      | exn -> Lwt.fail exn)

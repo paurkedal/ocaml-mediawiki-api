@@ -36,6 +36,7 @@ type 'a request = {
 type error = [
   | `Http_error of http_error
   | `Wiki_error of wiki_error
+  | `Json_error of string
   | `Msg of string
 ]
 

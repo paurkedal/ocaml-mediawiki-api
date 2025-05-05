@@ -49,12 +49,14 @@ type 'a request = {
 type error = [
   | `Http_error of http_error
   | `Wiki_error of wiki_error
+  | `Json_error of string
   | `Msg of string
 ]
 
 let pp_error ppf = function
  | `Http_error err -> pp_http_error ppf err
  | `Wiki_error err -> pp_wiki_error ppf err
+ | `Json_error err -> Fmt.(const string "Invalid JSON: %s" ++ string) ppf err
  | `Msg msg -> Fmt.string ppf msg
 
 exception Http_error of http_error
