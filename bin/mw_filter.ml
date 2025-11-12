@@ -24,18 +24,21 @@ open Utils
 
 module Int_map = Map.Make (struct type t = int let compare = compare end)
 
-let uri_parser s =
-  try `Ok (Uri.of_string s)
-  with Invalid_argument msg -> `Error msg
-let uri_printer fmtr uri = Format.pp_print_string fmtr (Uri.to_string uri)
-let uri_conv = uri_parser, uri_printer
+let uri_conv =
+  let parser s =
+    try Ok (Uri.of_string s)
+    with Invalid_argument msg -> Error msg
+  in
+  Arg.Conv.make ~docv:"URI" ~parser ~pp:Uri.pp ()
 
-let up_parser s =
-  match String.cut_affix ":" s with
-  | None -> `Error "Expecting <user>:<pass>."
-  | Some up -> `Ok up
-let up_printer fmtr (u, _) = Format.pp_print_string fmtr (u ^ ":********")
-let up_conv = up_parser, up_printer
+let login_conv =
+  let parser s =
+    (match String.cut_affix ":" s with
+     | None -> Error "Expecting <user>:<pass>."
+     | Some up -> Ok up)
+  in
+  let pp ppf (u, _) = Format.pp_print_string ppf (u ^ ":********") in
+  Arg.Conv.make ~docv:"LOGIN" ~parser ~pp ()
 
 type filter_action = [`Commit | `Skip | `Fail]
 
@@ -52,23 +55,25 @@ let string_of_action = function
 
 let default_actions = Int_map.singleton 0 `Commit, `Fail
 
-let actions_parser s =
-  let push s (am, ad) =
-    match String.cut_affix "=" s with
-    | None -> invalid_arg "Missing equal sign."
-    | Some ("else", a) -> am, action_of_string a
-    | Some (c, a) ->
-      Int_map.add (int_of_string c) (action_of_string a) am, ad in
-  try `Ok (List.fold push (String.chop_affix "," s) default_actions)
-  with Invalid_argument msg -> `Error msg
-
-let actions_printer fmtr (am, ad) =
-  Int_map.iter (fun c a -> Format.fprintf fmtr "%d=%s," c (string_of_action a))
-               am;
-  Format.pp_print_string fmtr "else=";
-  Format.pp_print_string fmtr (string_of_action ad)
-
-let actions_conv = actions_parser, actions_printer
+let actions_conv =
+  let parser s =
+    let push s (am, ad) =
+      (match String.cut_affix "=" s with
+       | None -> invalid_arg "Missing equal sign."
+       | Some ("else", a) -> am, action_of_string a
+       | Some (c, a) ->
+          Int_map.add (int_of_string c) (action_of_string a) am, ad)
+    in
+    try Ok (List.fold push (String.chop_affix "," s) default_actions)
+    with Invalid_argument msg -> Error msg
+  in
+  let pp ppf (am, ad) =
+    Int_map.iter
+      (fun c a -> Format.fprintf ppf "%d=%s," c (string_of_action a)) am;
+    Format.pp_print_string ppf "else=";
+    Format.pp_print_string ppf (string_of_action ad)
+  in
+  Arg.Conv.make ~docv:"ACTIONS" ~parser ~pp ()
 
 type filter_config = {
   fc_command : string * string array;
@@ -150,7 +155,7 @@ let () =
          info ~docs:"CONNECTION OPTIONS"
               ~docv:"URI" ~doc:"Location of api.php" ["api"]) in
   let login_t =
-    Arg.(value & opt (some up_conv) None &
+    Arg.(value & opt (some login_conv) None &
          info ~docs:"CONNECTION OPTIONS"
               ~docv:"USER:PASS"
               ~doc:"Login with the given credentials." ["login"]) in
